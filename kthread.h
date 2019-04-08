@@ -1,6 +1,17 @@
 #define MAX_STACK_SIZE 4000
 #define MAX_MUTEXES 64
 
+
+
+enum threadstate { UNUSED, SLEEPING, RUNNABLE, RUNNING };
+//pre thread state
+struct thread {
+  void *chan;                  // If non-zero, sleeping on chan (TODO:move completly from proc)
+  int tid;                     // Thread ID
+  enum threadstate state;      // Process state
+  struct context *context;     // swtch() here to run thread in process (TODO:the contex is now thread based)
+  char * kstack;                // Bottom of kernel stack for this process
+}
 /********************************
         The API of the KLT package
  ********************************/

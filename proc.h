@@ -33,6 +33,7 @@ struct context {
 };
 
 enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
+enum threadstate { UNUSED, SLEEPING, RUNNABLE, RUNNING };
 
 // Per-process state
 struct proc {
@@ -43,12 +44,12 @@ struct proc {
   int pid;                     // Process ID
   struct proc *parent;         // Parent process
   struct trapframe *tf;        // Trap frame for current syscall
-  struct context *context;     // swtch() here to run process
-  void *chan;                  // If non-zero, sleeping on chan
   int killed;                  // If non-zero, have been killed
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
+  struct thread threads[16];   // array of threads in process (max is 16)
+
 };
 
 // Process memory is laid out contiguously, low addresses first:
@@ -56,3 +57,16 @@ struct proc {
 //   original data and bss
 //   fixed-size stack
 //   expandable heap
+
+
+
+//pre thread state
+struct thread {
+  void *chan;                  // If non-zero, sleeping on chan (TODO:move completly from proc)
+  int tid;                     // Thread ID
+  enum threadstate state;      // Process state
+  struct context *context;     // swtch() here to run process (TODO:the contex is now thread based)
+
+
+
+}
