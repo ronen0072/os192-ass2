@@ -25,6 +25,10 @@ proc.c
 swtch.S
 kalloc.c
 
+
+#threads
+kthread.h
+
 # system calls
 traps.h
 vectors.pl

@@ -1,3 +1,6 @@
+#define NTHREAD   16
+
+
 // Per-CPU state
 struct cpu {
   uchar apicid;                // Local APIC ID
@@ -8,10 +11,13 @@ struct cpu {
   int ncli;                    // Depth of pushcli nesting.
   int intena;                  // Were interrupts enabled before pushcli?
   struct proc *proc;           // The process running on this cpu or null
+  struct thread * thread;   // The thread running on this cpu or null
 };
 
 extern struct cpu cpus[NCPU];
 extern int ncpu;
+
+
 
 //PAGEBREAK: 17
 // Saved registers for kernel context switches.
@@ -32,8 +38,8 @@ struct context {
   uint eip;
 };
 
-enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
-enum threadstate { UNUSED, SLEEPING, RUNNABLE, RUNNING };
+enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };//TODO:CONSIDER SLEEPING
+
 
 // Per-process state
 struct proc {
@@ -43,12 +49,13 @@ struct proc {
   enum procstate state;        // Process state
   int pid;                     // Process ID
   struct proc *parent;         // Parent process
-  struct trapframe *tf;        // Trap frame for current syscall
   int killed;                  // If non-zero, have been killed
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
-  struct thread threads[16];   // array of threads in process (max is 16)
+  struct thread * threads;   // array of threads in process (max is 16)
+  struct spinlock * ttlock;
+
 
 };
 
@@ -57,16 +64,3 @@ struct proc {
 //   original data and bss
 //   fixed-size stack
 //   expandable heap
-
-
-
-//pre thread state
-struct thread {
-  void *chan;                  // If non-zero, sleeping on chan (TODO:move completly from proc)
-  int tid;                     // Thread ID
-  enum threadstate state;      // Process state
-  struct context *context;     // swtch() here to run process (TODO:the contex is now thread based)
-
-
-
-}

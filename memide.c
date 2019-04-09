@@ -6,6 +6,7 @@
 #include "param.h"
 #include "mmu.h"
 #include "proc.h"
+#include "kthread.h"
 #include "x86.h"
 #include "traps.h"
 #include "spinlock.h"

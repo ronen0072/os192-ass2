@@ -4,6 +4,7 @@
 #include "memlayout.h"
 #include "mmu.h"
 #include "proc.h"
+#include "kthread.h"
 #include "x86.h"
 #include "traps.h"
 #include "spinlock.h"
@@ -39,10 +40,14 @@ trap(struct trapframe *tf)
   if(tf->trapno == T_SYSCALL){
     if(myproc()->killed)
       exit();
-    myproc()->tf = tf;
+    if(mythread()->killed)
+      kthread_exit();
+    mythread()->tf = tf;
     syscall();
     if(myproc()->killed)
       exit();
+    if(mythread()->killed)
+      kthread_exit();
     return;
   }
 

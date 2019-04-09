@@ -10,6 +10,7 @@
 #include "stat.h"
 #include "mmu.h"
 #include "proc.h"
+#include "kthread.h"
 #include "fs.h"
 #include "spinlock.h"
 #include "sleeplock.h"
@@ -375,7 +376,7 @@ sys_chdir(void)
   char *path;
   struct inode *ip;
   struct proc *curproc = myproc();
-  
+
   begin_op();
   if(argstr(0, &path) < 0 || (ip = namei(path)) == 0){
     end_op();

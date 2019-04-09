@@ -3,15 +3,19 @@
 
 
 
-enum threadstate { UNUSED, SLEEPING, RUNNABLE, RUNNING };
+//enum threadstate { UNUSED, SLEEPING, RUNNABLE, RUNNING,EMBRYO };
 //pre thread state
 struct thread {
   void *chan;                  // If non-zero, sleeping on chan (TODO:move completly from proc)
   int tid;                     // Thread ID
-  enum threadstate state;      // Process state
+  int killed;                   // TODO: for exec and...
+  enum procstate state;      // Process state
   struct context *context;     // swtch() here to run thread in process (TODO:the contex is now thread based)
-  char * kstack;                // Bottom of kernel stack for this process
-}
+  char * kstack;               // Bottom of kernel stack for this process
+  struct trapframe *tf;        // Trap frame for current syscall
+  struct thread * parent;       // TODO: not sure if needed
+
+};
 /********************************
         The API of the KLT package
  ********************************/
@@ -25,8 +29,9 @@ int kthread_mutex_alloc();
 int kthread_mutex_dealloc(int mutex_id);
 int kthread_mutex_lock(int mutex_id);
 int kthread_mutex_unlock(int mutex_id);
-
+/*
 trnmnt_tree* trnmnt_tree_alloc(int depth);
 int trnmnt_tree_dealloc(trnmnt_tree* tree);
 int trnmnt_tree_acquire(trnmnt_tree* tree,int ID);
 int trnmnt_tree_release(trnmnt_tree* tree,int ID);
+*/

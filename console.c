@@ -13,6 +13,7 @@
 #include "memlayout.h"
 #include "mmu.h"
 #include "proc.h"
+#include "kthread.h"
 #include "x86.h"
 
 static void consputc(int);
@@ -296,4 +297,3 @@ consoleinit(void)
 
   ioapicenable(IRQ_KBD, 0);
 }
-

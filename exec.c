@@ -3,6 +3,7 @@
 #include "memlayout.h"
 #include "mmu.h"
 #include "proc.h"
+#include "kthread.h"
 #include "defs.h"
 #include "x86.h"
 #include "elf.h"
@@ -11,14 +12,15 @@ int
 exec(char *path, char **argv)
 {
   char *s, *last;
-  int i, off;
+  int i, off,k;
   uint argc, sz, sp, ustack[3+MAXARG+1];
   struct elfhdr elf;
   struct inode *ip;
   struct proghdr ph;
   pde_t *pgdir, *oldpgdir;
   struct proc *curproc = myproc();
-
+  struct thread *curthread = mythread();
+  struct thread * t ;
   begin_op();
 
   if((ip = namei(path)) == 0){
@@ -93,12 +95,42 @@ exec(char *path, char **argv)
       last = s+1;
   safestrcpy(curproc->name, last, sizeof(curproc->name));
 
+
+
+
+  // ----------------------
+  acquire(curproc->ttlock);
+  for(t=curproc->threads;t< &curproc->threads[NTHREAD];t++){
+    if(t!=curthread && t->state!=UNUSED)
+      t->killed = 1;
+  }
+  release(curproc->ttlock);
+  while (k==NTHREAD-1){
+	  k=0;
+    for (t= curproc->threads; t< &curproc->threads[NTHREAD]; t++){
+  	  if (t != curthread && (t->state==ZOMBIE && t->state==UNUSED) ){
+  		  	  k++;
+  	  }
+    }
+  }
+
+  // --------------
   // Commit to the user image.
+  acquire(curproc->ttlock);
+  // check if other proc didnt allready tried to kill the thread/proc
+  if(curthread->state == ZOMBIE || curthread->killed){ //TODO:ASK ABOUT THIS PART
+    release(curproc->ttlock);
+    goto bad;
+  }
+
+
   oldpgdir = curproc->pgdir;
   curproc->pgdir = pgdir;
   curproc->sz = sz;
-  curproc->tf->eip = elf.entry;  // main
-  curproc->tf->esp = sp;
+  curthread->tf->eip = elf.entry;  // main
+  curthread->tf->esp = sp;
+  release(curproc->ttlock);
+
   switchuvm(curproc);
   freevm(oldpgdir);
   return 0;

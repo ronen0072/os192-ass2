@@ -3,6 +3,7 @@
 #include "param.h"
 #include "mmu.h"
 #include "proc.h"
+#include "kthread.h"
 #include "fs.h"
 #include "spinlock.h"
 #include "sleeplock.h"
