@@ -4,8 +4,9 @@
 #include "x86.h"
 #include "memlayout.h"
 #include "mmu.h"
-#include "proc.h"
 #include "kthread.h"
+#include "spinlock.h"
+#include "proc.h"
 #include "elf.h"
 
 extern char data[];  // defined by kernel.ld
@@ -159,7 +160,9 @@ switchuvm(struct proc *p)
 {
   if(p == 0)
     panic("switchuvm: no process");
-  if(p->kstack == 0)
+  if(mythread()==0)
+    panic("switchuvm: no thrad");
+  if(mythread()->kstack == 0)
     panic("switchuvm: no kstack");
   if(p->pgdir == 0)
     panic("switchuvm: no pgdir");
@@ -169,7 +172,7 @@ switchuvm(struct proc *p)
                                 sizeof(mycpu()->ts)-1, 0);
   mycpu()->gdt[SEG_TSS].s = 0;
   mycpu()->ts.ss0 = SEG_KDATA << 3;
-  mycpu()->ts.esp0 = (uint)p->kstack + KSTACKSIZE;
+  mycpu()->ts.esp0 = (uint)mythread()->kstack + KSTACKSIZE;
   // setting IOPL=0 in eflags *and* iomb beyond the tss segment limit
   // forbids I/O instructions (e.g., inb and outb) from user space
   mycpu()->ts.iomb = (ushort) 0xFFFF;

@@ -3,11 +3,13 @@
 #include "param.h"
 #include "memlayout.h"
 #include "mmu.h"
-#include "proc.h"
 #include "kthread.h"
+#include "spinlock.h"
+#include "proc.h"
+
 #include "x86.h"
 #include "traps.h"
-#include "spinlock.h"
+
 
 // Interrupt descriptor table (shared by all CPUs).
 struct gatedesc idt[256];
@@ -85,7 +87,7 @@ trap(struct trapframe *tf)
 
   //PAGEBREAK: 13
   default:
-    if(myproc() == 0 || (tf->cs&3) == 0){
+    if(myproc() == 0 || mythread() == 0 || (tf->cs&3) == 0){
       // In kernel, it must be our mistake.
       cprintf("unexpected trap %d from cpu %d eip %x (cr2=0x%x)\n",
               tf->trapno, cpuid(), tf->eip, rcr2());
@@ -105,13 +107,18 @@ trap(struct trapframe *tf)
   if(myproc() && myproc()->killed && (tf->cs&3) == DPL_USER)
     exit();
 
-  // Force process to give up CPU on clock tick.
+  // Force thread to give up CPU on clock tick.
   // If interrupts were on while locks held, would need to check nlock.
-  if(myproc() && myproc()->state == RUNNING &&
+  if(mythread() && mythread()->state == RUNNING &&
      tf->trapno == T_IRQ0+IRQ_TIMER)
     yield();
 
-  // Check if the process has been killed since we yielded
+  // Check if the process has been killed since we yielded (someone might have killed the process)
   if(myproc() && myproc()->killed && (tf->cs&3) == DPL_USER)
     exit();
+  // Check if the thrad has been killed since we yielded (someone might have killed the thread)
+  if(mythread() && mythread()->killed && (tf->cs&3) == DPL_USER)
+      kthread_exit();
+
+
 }

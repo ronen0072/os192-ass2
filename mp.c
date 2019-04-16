@@ -9,8 +9,10 @@
 #include "mp.h"
 #include "x86.h"
 #include "mmu.h"
-#include "proc.h"
 #include "kthread.h"
+#include "spinlock.h"
+#include "proc.h"
+
 
 struct cpu cpus[NCPU];
 int ncpu;

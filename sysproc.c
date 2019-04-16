@@ -5,8 +5,10 @@
 #include "param.h"
 #include "memlayout.h"
 #include "mmu.h"
-#include "proc.h"
 #include "kthread.h"
+#include "spinlock.h"
+#include "proc.h"
+
 
 int
 sys_fork(void)

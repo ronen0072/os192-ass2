@@ -2,18 +2,19 @@
 #define MAX_MUTEXES 64
 
 
+enum states { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
-//enum threadstate { UNUSED, SLEEPING, RUNNABLE, RUNNING,EMBRYO };
 //pre thread state
 struct thread {
   void *chan;                  // If non-zero, sleeping on chan (TODO:move completly from proc)
   int tid;                     // Thread ID
   int killed;                   // TODO: for exec and...
-  enum procstate state;      // Process state
+  enum states state;      // Process state
   struct context *context;     // swtch() here to run thread in process (TODO:the contex is now thread based)
   char * kstack;               // Bottom of kernel stack for this process
   struct trapframe *tf;        // Trap frame for current syscall
   struct thread * parent;       // TODO: not sure if needed
+  struct proc * myproc;
 
 };
 /********************************

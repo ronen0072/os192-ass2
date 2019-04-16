@@ -2,10 +2,10 @@
 #include "defs.h"
 #include "param.h"
 #include "mmu.h"
-#include "proc.h"
 #include "kthread.h"
-#include "fs.h"
 #include "spinlock.h"
+#include "proc.h"
+#include "fs.h"
 #include "sleeplock.h"
 #include "file.h"
 
@@ -84,7 +84,7 @@ pipewrite(struct pipe *p, char *addr, int n)
   acquire(&p->lock);
   for(i = 0; i < n; i++){
     while(p->nwrite == p->nread + PIPESIZE){  //DOC: pipewrite-full
-      if(p->readopen == 0 || myproc()->killed){
+      if(p->readopen == 0 || myproc()->killed || mythread()->killed){
         release(&p->lock);
         return -1;
       }

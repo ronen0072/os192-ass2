@@ -38,7 +38,7 @@ struct context {
   uint eip;
 };
 
-enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };//TODO:CONSIDER SLEEPING
+
 
 
 // Per-process state
@@ -46,14 +46,14 @@ struct proc {
   uint sz;                     // Size of process memory (bytes)
   pde_t* pgdir;                // Page table
   char *kstack;                // Bottom of kernel stack for this process
-  enum procstate state;        // Process state
+  enum states state;        // Process state
   int pid;                     // Process ID
   struct proc *parent;         // Parent process
   int killed;                  // If non-zero, have been killed
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
-  struct thread * threads;   // array of threads in process (max is 16)
+  struct thread threads[NTHREAD];   // array of threads in process (max is 16)
   struct spinlock * ttlock;
 
 

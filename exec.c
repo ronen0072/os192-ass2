@@ -2,8 +2,9 @@
 #include "param.h"
 #include "memlayout.h"
 #include "mmu.h"
-#include "proc.h"
 #include "kthread.h"
+#include "spinlock.h"
+#include "proc.h"
 #include "defs.h"
 #include "x86.h"
 #include "elf.h"
@@ -21,6 +22,28 @@ exec(char *path, char **argv)
   struct proc *curproc = myproc();
   struct thread *curthread = mythread();
   struct thread * t ;
+
+  // ----------------------
+  acquire(curproc->ttlock);
+  for(t=curproc->threads;t< &curproc->threads[NTHREAD];t++){
+    if(t!=curthread && t->state!=UNUSED)
+      t->killed = 1;
+  }
+
+  k = NTHREAD-1;
+  while (k == NTHREAD-1){
+	  k=0;
+    for (t = curproc->threads; t< &curproc->threads[NTHREAD]; t++){
+  	  if (t != curthread && (t->state == ZOMBIE || t->state == UNUSED) ){
+  		  	  k++;
+  	  }
+    }
+  }
+  release(curproc->ttlock);
+
+
+  // --------------
+
   begin_op();
 
   if((ip = namei(path)) == 0){
@@ -98,27 +121,11 @@ exec(char *path, char **argv)
 
 
 
-  // ----------------------
-  acquire(curproc->ttlock);
-  for(t=curproc->threads;t< &curproc->threads[NTHREAD];t++){
-    if(t!=curthread && t->state!=UNUSED)
-      t->killed = 1;
-  }
-  release(curproc->ttlock);
-  while (k==NTHREAD-1){
-	  k=0;
-    for (t= curproc->threads; t< &curproc->threads[NTHREAD]; t++){
-  	  if (t != curthread && (t->state==ZOMBIE && t->state==UNUSED) ){
-  		  	  k++;
-  	  }
-    }
-  }
 
-  // --------------
   // Commit to the user image.
   acquire(curproc->ttlock);
   // check if other proc didnt allready tried to kill the thread/proc
-  if(curthread->state == ZOMBIE || curthread->killed){ //TODO:ASK ABOUT THIS PART
+  if(curproc->state == ZOMBIE || curthread->killed){
     release(curproc->ttlock);
     goto bad;
   }
