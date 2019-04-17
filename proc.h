@@ -52,9 +52,9 @@ struct proc {
   int killed;                  // If non-zero, have been killed
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
-  char name[16];               // Process name (debugging)
   struct thread threads[NTHREAD];   // array of threads in process (max is 16)
   struct spinlock * ttlock;
+  char name[16];               // Process name (debugging)
 
 
 };

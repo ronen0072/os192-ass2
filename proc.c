@@ -245,6 +245,7 @@ fork(void)
   np->parent = curproc;
 
   *nt->tf = *curthread->tf;
+  nt->parent = curthread;
 
   // Clear %eax so that fork returns 0 in the child.
   nt->tf->eax = 0;
@@ -279,6 +280,7 @@ exit(void)
   struct proc *p;
   int fd;
 
+cprintf("cpu %d with proc %s is starting exit\n",mycpu()->apicid,myproc()->name);
   if(curproc == initproc)
     panic("init exiting");
 
@@ -410,13 +412,14 @@ scheduler(void)
       for(t = p->threads ; t < &p->threads[NTHREAD]; t++){
         if(t->state != RUNNABLE)
           continue;
-
+        cprintf("cpu %d chose proc %s and thread %d\n",c->apicid, p->name,t->tid);
         // Switch to chosen process.  It is the process's job
         // to release ptable.lock and then reacquire it
         // before jumping back to us.
         c->proc = p;
         c->thread = t;
         switchuvm(p);
+        cprintf("cpu %d with proc %s returned from switchuvm\n",c->apicid,p->name);
         p->state = RUNNING;
         t->state = RUNNING;
 
@@ -425,6 +428,7 @@ scheduler(void)
 
           c->thread = 0;
       }
+      cprintf("cpu %d  looking for another proc\n",mycpu()->apicid);
       // Process is done running for now.
       // It should have changed its p->state before coming back.
       c->proc = 0;
@@ -500,6 +504,8 @@ forkret(void)
 void
 sleep(void *chan, struct spinlock *lk)
 {
+
+  cprintf("cpu %d with proc %s is starting sleep\n",mycpu()->apicid,myproc()->name);
   struct thread *curthread = mythread();
   struct proc * p = myproc();
   struct thread * t ;
@@ -596,10 +602,13 @@ kill(int pid)
       for(t=p->threads; t<&p->threads[NTHREAD]; t++){
         if(t->state == SLEEPING){
             t->state = RUNNABLE;
+            goto die;
         }
 
       }
     }
+
+  die:
       release(&ptable.lock);
       return 0;
     }
@@ -653,4 +662,8 @@ procdump(void)
 
 void kthread_exit(){
 
+
+}
+int kthread_id(){
+  return mythread()->tid;
 }

@@ -42,14 +42,15 @@ trap(struct trapframe *tf)
   if(tf->trapno == T_SYSCALL){
     if(myproc()->killed)
       exit();
-    if(mythread()->killed)
-      kthread_exit();
+  //  if(mythread()->killed)
+
+  //    kthread_exit();
     mythread()->tf = tf;
     syscall();
     if(myproc()->killed)
       exit();
-    if(mythread()->killed)
-      kthread_exit();
+  //  if(mythread()->killed)
+    //  kthread_exit();
     return;
   }
 
@@ -117,8 +118,8 @@ trap(struct trapframe *tf)
   if(myproc() && myproc()->killed && (tf->cs&3) == DPL_USER)
     exit();
   // Check if the thrad has been killed since we yielded (someone might have killed the thread)
-  if(mythread() && mythread()->killed && (tf->cs&3) == DPL_USER)
-      kthread_exit();
+  // if(mythread() && mythread()->killed && (tf->cs&3) == DPL_USER)
+  //     kthread_exit();
 
 
 }

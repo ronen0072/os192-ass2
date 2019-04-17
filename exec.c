@@ -24,6 +24,7 @@ exec(char *path, char **argv)
   struct thread * t ;
 
   // ----------------------
+  cprintf("proc %s is starting exec\n",curproc->name);
   acquire(curproc->ttlock);
   for(t=curproc->threads;t< &curproc->threads[NTHREAD];t++){
     if(t!=curthread && t->state!=UNUSED)
