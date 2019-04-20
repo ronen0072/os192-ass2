@@ -9,11 +9,49 @@
 #include "x86.h"
 #include "elf.h"
 
+
+void kill_threads(struct proc * p){
+  struct thread *curthread = mythread();
+  struct thread * t ;
+  int k=0;
+  acquire(p->ttlock);
+  for(t=p->threads;t< &p->threads[NTHREAD];t++){
+    if(t!=curthread && t->state!=UNUSED)
+      t->killed = 1;
+
+      //wake the thread if he is sleeping so he will be killed;
+    if(t->state == SLEEPING)
+        t->state = RUNNABLE;
+
+
+  }
+
+  // wait until all other threads are killed
+  while (k < NTHREAD-1){
+    k=0;
+    for (t = p->threads; t< &p->threads[NTHREAD]; t++){
+      if (t != curthread && (t->state == ZOMBIE || t->state == UNUSED) ){
+            k++;
+          // once a thread is zombie make it available again
+          if(t->state == ZOMBIE){
+              kfree(t->kstack);
+              t->kstack = 0;
+              t->state = UNUSED;
+              continue;
+          }
+      }
+
+    }
+  }
+  release(p->ttlock);
+
+
+}
 int
 exec(char *path, char **argv)
 {
   char *s, *last;
-  int i, off,k;
+  int i, off;
   uint argc, sz, sp, ustack[3+MAXARG+1];
   struct elfhdr elf;
   struct inode *ip;
@@ -21,27 +59,10 @@ exec(char *path, char **argv)
   pde_t *pgdir, *oldpgdir;
   struct proc *curproc = myproc();
   struct thread *curthread = mythread();
-  struct thread * t ;
+ // struct thread * t ;
 
   // ----------------------
-  cprintf("proc %s is starting exec\n",curproc->name);
-  acquire(curproc->ttlock);
-  for(t=curproc->threads;t< &curproc->threads[NTHREAD];t++){
-    if(t!=curthread && t->state!=UNUSED)
-      t->killed = 1;
-  }
-
-  k = NTHREAD-1;
-  while (k == NTHREAD-1){
-	  k=0;
-    for (t = curproc->threads; t< &curproc->threads[NTHREAD]; t++){
-  	  if (t != curthread && (t->state == ZOMBIE || t->state == UNUSED) ){
-  		  	  k++;
-  	  }
-    }
-  }
-  release(curproc->ttlock);
-
+  //cprintf("proc %s is starting exec\n",curproc->name);
 
   // --------------
 
@@ -144,6 +165,7 @@ exec(char *path, char **argv)
   return 0;
 
  bad:
+
   if(pgdir)
     freevm(pgdir);
   if(ip){
