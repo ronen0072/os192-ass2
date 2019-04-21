@@ -65,7 +65,7 @@ exec(char *path, char **argv)
   //cprintf("proc %s is starting exec\n",curproc->name);
 
   // --------------
-
+  kill_threads(curproc);
   begin_op();
 
   if((ip = namei(path)) == 0){
