@@ -25,10 +25,12 @@ void kill_threads(struct proc * p){
 
 
   }
+  release(p->ttlock);
 
   // wait until all other threads are killed
   while (k < NTHREAD-1){
     k=0;
+      acquire(p->ttlock);
     for (t = p->threads; t< &p->threads[NTHREAD]; t++){
       if (t != curthread && (t->state == ZOMBIE || t->state == UNUSED) ){
             k++;
@@ -42,8 +44,10 @@ void kill_threads(struct proc * p){
       }
 
     }
+      release(p->ttlock);
+    //let another cpu catch it;
   }
-  release(p->ttlock);
+
 
 
 }

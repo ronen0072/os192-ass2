@@ -94,7 +94,7 @@ int allocthread(struct proc * p){
     char *sp;
     acquire(p->ttlock);
 
- //look for a thread (should be first)
+    //look for a thread (should be first)
     for(t = p->threads; t < &p->threads[NTHREAD]; t++){
         if(t->state!= UNUSED)
             continue;
@@ -160,7 +160,7 @@ allocproc(void)
     found:
     p->state = EMBRYO;
     p->ttlock  = &ptable.lock;
-     //initlock(&p->ttlock,"threads_lock");
+    //initlock(&p->ttlock,"threads_lock");
     p->pid = nextpid++;
     release(&ptable.lock);
 
@@ -307,12 +307,13 @@ void
 exit(void)
 {
 
-  //  cprintf("Got to Exit\n");
+    //  cprintf("Got to Exit\n");
     struct proc *curproc = myproc();
     struct thread * t;
     struct proc *p;
     int fd;
-
+    struct thread * curthread = mythread();
+    int numZombies =0;
     //cprintf("cpu %d with proc %s is starting exit\n",mycpu()->apicid,myproc()->name);
     if(curproc == initproc)
         panic("init exiting");
@@ -344,29 +345,42 @@ exit(void)
         }
 
     }
+    // cprintf("proc %s has  no kids\n",p->name);
 
-   // cprintf("proc %s has  no kids\n",p->name);
 
-
-    //make all threads zombies
-
-  //  curproc->state = ZOMBIE;
+    //make all threads exit at trap
 
     for(t=curproc->threads; t<&curproc->threads[NTHREAD]; t++){
         if(t->state!=UNUSED){
-           // cprintf("kid is becoming zombie\n");
+            t->killed = 1;
+            t->chan = 0; // thread might have been sleeping, we want to make sure no one wakes it up
+        }
+        if(t->state == RUNNABLE || t->state == SLEEPING){
             t->state = ZOMBIE;
-            t->chan = 0; // thread might have been sleeping, we want to nake sure no one wakes it up
         }
 
     }
-   // cprintf("all kids are Zombies\n");
+
+    //count number of Zombie children;
+    curthread->state = ZOMBIE;
+    for(t=curproc->threads; t<&curproc->threads[NTHREAD]; t++){
+        if(t->state == ZOMBIE || t->state == UNUSED)
+            numZombies++;
+    }
+    // cprintf("all kids are Zombies\n");
+
+   if(numZombies == NTHREAD)
+       curproc->state = ZOMBIE;
+    // proc will be zombie when last child has exited
 
     // Jump into the scheduler, never to return.
-    curproc->state = ZOMBIE;
+    // current thread won't get back since it will exit at trap
     sched();
     panic("zombie exit");
 }
+
+
+
 
 // Wait for a child process to exit and return its pid.
 // Return -1 if this process has no children.
@@ -454,14 +468,15 @@ scheduler(void)
             for(t = p->threads ; t < &p->threads[NTHREAD]; t++){
                 if(t->state != RUNNABLE)
                     continue;
-               // cprintf("cpu %d chose proc %s and thread %d\n",c->apicid, p->name,t->tid);
+                // cprintf("cpu %d chose proc %s and thread %d\n",c->apicid, p->name,t->tid);
                 // Switch to chosen process.  It is the process's job
                 // to release ptable.lock and then reacquire it
                 // before jumping back to us.
                 c->proc = p;
                 c->thread = t;
                 switchuvm(p);
-              //  cprintf("cpu %d with proc %s returned from switchuvm\n",c->apicid,p->name);
+                //  cprintf("cpu %d with proc %s returned from switchuvm\n",c->apicid,p->name);
+
                 p->state = RUNNING;
                 t->state = RUNNING;
 
@@ -470,7 +485,7 @@ scheduler(void)
 
                 c->thread = 0;
             }
-           // cprintf("cpu %d  looking for another proc\n",mycpu()->apicid);
+            // cprintf("cpu %d  looking for another proc\n",mycpu()->apicid);
             // Process is done running for now.
             // It should have changed its p->state before coming back.
             c->proc = 0;
@@ -548,7 +563,7 @@ void
 sleep(void *chan, struct spinlock *lk)
 {
 
-   // cprintf("cpu %d with proc %s is starting sleep\n",mycpu()->apicid,myproc()->name);
+    // cprintf("cpu %d with proc %s is starting sleep\n",mycpu()->apicid,myproc()->name);
     struct thread *curthread = mythread();
     struct proc * p = myproc();
     struct thread * t ;
