@@ -12,3 +12,4 @@ entryother
 fs.img
 initcode
 kernel
+.idea*
