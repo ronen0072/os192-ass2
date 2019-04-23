@@ -89,7 +89,7 @@ myproc(void) {
 }
 
 
-int allocthread(struct proc * p){
+int allocthread(struct proc * p, uint stack_size){
     struct thread * t;
     char *sp;
     acquire(p->ttlock);
@@ -116,7 +116,7 @@ int allocthread(struct proc * p){
         return 0;
     }
 
-    sp = t->kstack + KSTACKSIZE;
+    sp = t->kstack + stack_size;
     // Leave room for trap frame.
     sp -= sizeof *t->tf;
     t->tf = (struct trapframe*)sp;
@@ -131,7 +131,7 @@ int allocthread(struct proc * p){
     memset(t->context, 0, sizeof *t->context);
     t->context->eip = (uint)forkret;
 
-    return 1;
+    return t->tid;
 
 }
 //PAGEBREAK: 32
@@ -164,7 +164,7 @@ allocproc(void)
     p->pid = nextpid++;
     release(&ptable.lock);
 
-    if(allocthread(p) == 0){
+    if(allocthread(p, KSTACKSIZE) == 0){
         p->state =UNUSED;
         return 0;
     }
@@ -369,8 +369,8 @@ exit(void)
     }
     // cprintf("all kids are Zombies\n");
 
-   if(numZombies == NTHREAD)
-       curproc->state = ZOMBIE;
+    if(numZombies == NTHREAD)
+        curproc->state = ZOMBIE;
     // proc will be zombie when last child has exited
 
     // Jump into the scheduler, never to return.
@@ -568,11 +568,12 @@ sleep(void *chan, struct spinlock *lk)
     struct proc * p = myproc();
     struct thread * t ;
 
+    if(p == 0)
+        panic("sleeping proc");
+
     if(curthread == 0)
         panic("sleeping thread");
 
-    if(curthread == 0)
-        panic("sleeping proc");
 
     if(lk == 0)
         panic("sleep without lk");
@@ -729,7 +730,7 @@ void kthread_exit(){
 
     if(curthread->parent!=0)
         // Parent might be sleeping in wait().
-        wakeup1(curthread->parent);
+        wakeup1(&curthread->tid);
 
 
     for(t=curproc->threads; t<&curproc->threads[NTHREAD]; t++){
@@ -753,3 +754,50 @@ void kthread_exit(){
 int kthread_id(){
     return mythread()->tid;
 }
+
+int kthread_join(int thread_id){
+
+    struct proc *curproc = myproc();
+    struct thread * currthread = mythread();
+    struct thread *t;
+
+    acquire(curproc->ttlock);
+    for(;;){
+        // Scan through table looking for exited thread with the tid.
+        for(t = curproc->threads; t < &curproc->threads[NTHREAD]; t++){
+            if(t->tid == thread_id && t->state == ZOMBIE){
+                t->state = UNUSED;
+                kfree(t->kstack);
+                t->kstack=0;
+                t->tid = 0;
+                t->killed = 0;
+                release(&ptable.lock);
+                return 0;
+
+            }
+        }
+        // if there is no thread with that id its an error.
+        if( currthread->killed){
+            release(&ptable.lock);
+            return -1;
+        }
+        sleep(&(t->tid),curproc->ttlock);  //DOC: wait-sleep
+
+        // Wait for thread to exit.
+    }
+}
+int kthread_create(void (*start_func)(), void* stack){
+
+    struct proc * proc = myproc();
+    int tid = allocproc(proc, MAX_STACK_SIZE);
+    if(allocproc())
+    t->tf->eip = (uint)start_func;
+    t->tf->esp = (uint)(stack+MAX_STACK_SIZE); // start point in stack
+    t->tf->eflags = FL_IF;
+    t->parent = proc;
+    t->state = RUNNABLE;
+    return t->tid;
+}
+
+
+
