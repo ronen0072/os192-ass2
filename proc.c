@@ -26,7 +26,7 @@ int nextpid = 1;
 int nexttid = 1;
 extern void forkret(void);
 extern void trapret(void);
-static struct thread * allocthread(struct proc* p, uint stack_size, void * kstack);
+static struct thread * allocthread(struct proc* p, uint stack_size);
 
 static void wakeup1(void *chan);
 
@@ -91,7 +91,7 @@ myproc(void) {
 }
 
 
-struct  thread  * allocthread(struct proc * p, uint stack_size, void * kstack){
+struct  thread  * allocthread(struct proc * p, uint stack_size){
     struct thread * t;
     char *sp;
     acquire(p->ttlock);
@@ -112,13 +112,12 @@ struct  thread  * allocthread(struct proc * p, uint stack_size, void * kstack){
     t->myproc = p;
     release(p->ttlock);
 
-    if(kstack == 0) {
-        if ((t->kstack = kalloc()) == 0) {
-            t->state = UNUSED;
-            return 0;
-        }
-    }else
-        t->kstack = kstack;
+
+    if ((t->kstack = kalloc()) == 0) {
+        t->state = UNUSED;
+        return 0;
+    }
+
 
     sp = t->kstack + stack_size;
     // Leave room for trap frame.
@@ -168,7 +167,7 @@ allocproc(void)
     p->pid = nextpid++;
     release(&ptable.lock);
 
-    if(allocthread(p, KSTACKSIZE,0) == 0){
+    if(allocthread(p, KSTACKSIZE) == 0){
         p->state =UNUSED;
         return 0;
     }
@@ -793,20 +792,30 @@ int kthread_join(int thread_id){
 int kthread_create(void (*start_func)(), void* stack){
 
     struct proc * proc = myproc();
-    struct thread * t = allocthread(proc, MAX_STACK_SIZE, 0);
+    struct thread  * curthread = mythread();
+    struct thread * t = allocthread(proc, MAX_STACK_SIZE);
     if(t == 0)
         return -1;
+    //not sure if this is needed here
+   /* memset(t->tf, 0, sizeof(*t->tf)); //put zeroes
+    t->tf->cs = (SEG_UCODE << 3) | DPL_USER; // define user segment code
+    t->tf->ds = (SEG_UDATA << 3) | DPL_USER   t->tf->es = t->tf->ds;
 
-    memset(t->tf, 0, sizeof(*t->tf));
-    t->tf->cs = (SEG_UCODE << 3) | DPL_USER;
-    t->tf->ds = (SEG_UDATA << 3) | DPL_USER;
-    t->tf->es = t->tf->ds;
-    t->tf->ss = t->tf->ds;
+*/
+    t->tf->cs = curthread->tf->cs; // user code segment
+    t->tf->ds = curthread->tf->ds; // user data+stack
+
     t->tf->eip = (uint)start_func;
     t->tf->esp = (uint)(stack+MAX_STACK_SIZE); // start point in stack
     t->tf->eflags = FL_IF;
     t->myproc = proc;
+
+    acquire(curproc->ttlock);
+
     t->state = RUNNABLE;
+
+    release(curproc->ttlock);
+
     return t->tid;
 }
 

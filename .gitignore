@@ -13,3 +13,4 @@ fs.img
 initcode
 kernel
 .idea*
+.idea/*
