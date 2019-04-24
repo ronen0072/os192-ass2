@@ -14,6 +14,7 @@
 //   struct thread threads [NTHREAD];
 // };
 
+
 struct {
     struct spinlock lock;
     struct proc proc[NPROC];
@@ -25,6 +26,7 @@ int nextpid = 1;
 int nexttid = 1;
 extern void forkret(void);
 extern void trapret(void);
+static struct thread * allocthread(struct proc* p, uint stack_size, void * kstack);
 
 static void wakeup1(void *chan);
 
@@ -89,7 +91,7 @@ myproc(void) {
 }
 
 
-int allocthread(struct proc * p, uint stack_size){
+struct  thread  * allocthread(struct proc * p, uint stack_size, void * kstack){
     struct thread * t;
     char *sp;
     acquire(p->ttlock);
@@ -110,11 +112,13 @@ int allocthread(struct proc * p, uint stack_size){
     t->myproc = p;
     release(p->ttlock);
 
-
-    if((t->kstack = kalloc()) == 0){
-        t->state = UNUSED;
-        return 0;
-    }
+    if(kstack == 0) {
+        if ((t->kstack = kalloc()) == 0) {
+            t->state = UNUSED;
+            return 0;
+        }
+    }else
+        t->kstack = kstack;
 
     sp = t->kstack + stack_size;
     // Leave room for trap frame.
@@ -131,7 +135,7 @@ int allocthread(struct proc * p, uint stack_size){
     memset(t->context, 0, sizeof *t->context);
     t->context->eip = (uint)forkret;
 
-    return t->tid;
+    return t;
 
 }
 //PAGEBREAK: 32
@@ -164,7 +168,7 @@ allocproc(void)
     p->pid = nextpid++;
     release(&ptable.lock);
 
-    if(allocthread(p, KSTACKSIZE) == 0){
+    if(allocthread(p, KSTACKSIZE,0) == 0){
         p->state =UNUSED;
         return 0;
     }
@@ -789,15 +793,24 @@ int kthread_join(int thread_id){
 int kthread_create(void (*start_func)(), void* stack){
 
     struct proc * proc = myproc();
-    int tid = allocproc(proc, MAX_STACK_SIZE);
-    if(allocproc())
+    struct thread * t = allocthread(proc, MAX_STACK_SIZE, 0);
+    if(t == 0)
+        return -1;
+
+    memset(t->tf, 0, sizeof(*t->tf));
+    t->tf->cs = (SEG_UCODE << 3) | DPL_USER;
+    t->tf->ds = (SEG_UDATA << 3) | DPL_USER;
+    t->tf->es = t->tf->ds;
+    t->tf->ss = t->tf->ds;
     t->tf->eip = (uint)start_func;
     t->tf->esp = (uint)(stack+MAX_STACK_SIZE); // start point in stack
     t->tf->eflags = FL_IF;
-    t->parent = proc;
+    t->myproc = proc;
     t->state = RUNNABLE;
     return t->tid;
 }
+
+
 
 
 

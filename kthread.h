@@ -11,7 +11,7 @@ struct thread {
   int killed;                   // TODO: for exec and...
   enum states state;      // Process state
   struct context *context;     // swtch() here to run thread in process (TODO:the contex is now thread based)
-  char * kstack;               // Bottom of kernel stack for this process
+  char * kstack;               // Bottom of kernel stack for this thread
   struct trapframe *tf;        // Trap frame for current syscall
   struct thread * parent;       // TODO: not sure if needed
   struct proc * myproc;
