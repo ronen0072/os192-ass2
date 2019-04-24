@@ -32,12 +32,12 @@ void test_forking(){
     }
 
 }
-
-void sanity_kthread(){
-    int tid;
-    kthread_create(fib, );
-
-}
+//
+//void sanity_kthread(){
+//    int tid;
+//    kthread_create(fib, );
+//
+//}
 
 
 void make_test(void (*f)(void) , int expected ,char * fail_msg){
@@ -58,6 +58,6 @@ int main(void){
     ans = 0;
     printf(1,"num of success:%d num of failures: %d\n",success,fail );
     if(fail == 0)
-        printf("All tests passed!! Yay!");
+        printf(1,"All tests passed!! Yay!\n");
     exit();
   }

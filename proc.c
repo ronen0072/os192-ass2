@@ -810,11 +810,11 @@ int kthread_create(void (*start_func)(), void* stack){
     t->tf->eflags = FL_IF;
     t->myproc = proc;
 
-    acquire(curproc->ttlock);
+    acquire(proc->ttlock);
 
     t->state = RUNNABLE;
 
-    release(curproc->ttlock);
+    release(proc->ttlock);
 
     return t->tid;
 }
