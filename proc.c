@@ -903,8 +903,10 @@ int kthread_mutex_dealloc(int mutex_id){
 }
 int kthread_mutex_lock(int mutex_id){
 
-    if (mutex_id < 0 || mutex_id >= MAX_MUTEXES)
+    if (mutex_id < 0 || mutex_id >= MAX_MUTEXES) {
+        cprintf("bad id\n");
         return -1;
+    }
 
     struct kthread_mutex* m = &mtable.mutex[mutex_id];
     struct proc* curproc = myproc();
@@ -915,7 +917,8 @@ int kthread_mutex_lock(int mutex_id){
     }
 
     acquire(&mtable.lock);
-    if(m->allocated == 1) {
+    if(m->allocated == 0) {
+        cprintf("not allocated\n");
         release(&mtable.lock);
         return -1;
     }
@@ -948,7 +951,7 @@ int kthread_mutex_unlock(int mutex_id){
     }
 
     acquire(&mtable.lock);
-    if(m->allocated == 1) {
+    if(m->allocated == 0) {
         release(&mtable.lock);
         return -1;
     }
@@ -980,4 +983,12 @@ int kthread_mutex_unlock(int mutex_id){
     m->tid = 0;
     release(&mtable.lock);
     return 0;
+}
+
+//debug sys call
+
+int mutex_tid(int mid){
+
+
+    return mtable.mutex[mid].tid;
 }

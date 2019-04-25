@@ -5,7 +5,7 @@
 #define MAX_STACK_SIZE 4000
 
 int testnum = 20;
-int success=0, fail=0,ans=-1, fibNum=25;
+int success=0, fail=0,ans=-1, fibNum=25,mid=-1;
 int pids[20];
 
 int fib(uint num){
@@ -100,40 +100,130 @@ void kthread_wrong_join(){
 
 }
 
+void mutex_alloc(){
 
-void make_test(void (*f)(void) , int expected ,char * fail_msg){
+    mid = kthread_mutex_alloc();
+    if(mid >= 0)
+        ans++;
 
 
-    printf(1,"__________starting test_______________________\n");
+}
+void mutex_dealloc(){
+    int ret = kthread_mutex_dealloc(mid);
+    if(ret >= 0)
+        ans++;
+
+}
+
+void mutex_dealloc_non_alocated(){
+    int ret = kthread_mutex_dealloc(mid+1);
+    if(ret < 0)
+        ans++;
+
+}
+
+
+void mutex_dealloc_twice(){
+    mid = kthread_mutex_alloc();
+    kthread_mutex_dealloc(mid);
+    int ret2 = kthread_mutex_dealloc(mid);
+    if(ret2 < 0)
+        ans=1;
+
+}
+
+void sanity_mutex_lock(){
+
+    mid = kthread_mutex_alloc();
+    int ret = kthread_mutex_lock(mid);
+    if(ret >= 0)
+        ans++;
+
+
+}
+void sanity_mutex_unlock(){
+    int ret = kthread_mutex_unlock(mid);
+    if(ret >= 0)
+        ans++;
+
+}
+
+void cs(){
+    printf(1,"tid::%d\n", kthread_id());
+    kthread_mutex_lock(mid);
+    fib(fibNum);
+    if(mutex_tid(mid) == kthread_id())
+        ans++;
+    printf(1,"tid::%d\n", kthread_id());
+
+    kthread_mutex_unlock(mid);
+
+    kthread_exit();
+
+}
+
+void mutex_lock(){
+    uint *stack1 = malloc(MAX_STACK_SIZE);
+    uint *stack2 = malloc(MAX_STACK_SIZE);
+
+    mid = kthread_mutex_alloc();
+    int tid1 = kthread_create(cs, stack1);
+    int tid2 = kthread_create(cs, stack2);
+    kthread_join(tid1);
+    kthread_join(tid2);
+    kthread_mutex_dealloc(mid);
+
+}
+
+
+
+void make_test(void (*f)(void) , int expected ,char * test_name){
+
+void printfibexit(){
+    fib(fibNum);
+    printf(1,"tid::%d\n", kthread_id());
+    kthread_exit();
+
+}
+    printf(1,"__________starting test %s_______________________\n",test_name);
+    ans = 0;
     f();
     if(ans == expected)
         success++;
     else {
         fail++;
-        printf(1,"%s\n",fail_msg);
+        printf(1,"%s failed\n",test_name);
     }
 
 
 
 }
 
+
+
 int main(void){
 
-    ans = 0;
-    make_test(test_forking,20,"test forking didn't work\n");
+    // __________________KTHREAD___________________
+    make_test(test_forking,20,"test_forking");
+    make_test(sanity_kthread,1,"sanity_kthread");
+    make_test(test_full_kthread,15,"sanity_kthread");
+    make_test(create_extra_kthread,1,"create_extra_kthread");
+    make_test(kthread_wrong_join,-1,"kthread_wrong_join");
 
-    ans = 0;
-    make_test(sanity_kthread,1,"faild to create\n");
 
-    ans = 0;
-    make_test(test_full_kthread,15,"faild to create\n");
 
-    ans = 0;
-    make_test(create_extra_kthread,1,"extra created!\n");
+   // __________________SIMPLE MUTEX___________________
+    make_test(mutex_alloc,1,"mutex_alloc");
+    make_test(mutex_dealloc,1,"mutex_dealloc");
+    make_test(mutex_dealloc_twice,1,"mutex_dealloc_twice");
+    make_test(mutex_dealloc_non_alocated,1,"mutex_dealloc_non_alocated");
+    make_test(sanity_mutex_lock,1,"sanity_mutex_lock");
+    make_test(sanity_mutex_unlock,1,"sanity_mutex_unlock");
+    kthread_mutex_dealloc(mid);
+    make_test(mutex_lock,2,"mutex_lock");
 
-    ans = 0;
-    make_test(kthread_wrong_join,-1,"wrong join not error!\n");
 
+    // ___________________SUMMERY_______________________________
     printf(1,"num of success:%d num of failures: %d\n",success,fail );
 
     if(fail == 0)
