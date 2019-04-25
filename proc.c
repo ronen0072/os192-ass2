@@ -20,6 +20,12 @@ struct {
     struct proc proc[NPROC];
 } ptable;
 
+
+struct {
+    struct kthread_mutex mutex[MAX_MUTEXES];
+    struct spinlock lock;
+}mtable;
+
 static struct proc *initproc;
 
 int nextpid = 1;
@@ -162,6 +168,9 @@ allocproc(void)
 
     found:
     p->state = EMBRYO;
+    for(int index  = 0; index < MAX_MUTEXES; index++){
+        p->mid[index] = 0;
+    }
     p->ttlock  = &ptable.lock;
     //initlock(&p->ttlock,"threads_lock");
     p->pid = nextpid++;
@@ -374,6 +383,9 @@ exit(void)
 
     if(numZombies == NTHREAD)
         curproc->state = ZOMBIE;
+    else{
+        curproc->state = RUNNABLE;
+    }
     // proc will be zombie when last child has exited
 
     // Jump into the scheduler, never to return.
@@ -420,6 +432,9 @@ wait(void)
                     }
                 }
                 pid = p->pid;
+                for(int index  = 0; index < MAX_MUTEXES; index++){
+                    p->mid[index] = 0;
+                }
                 p->pid = 0;
                 p->parent = 0;
                 p->name[0] = 0;
@@ -603,6 +618,7 @@ sleep(void *chan, struct spinlock *lk)
     if (allSleeping){
         p->state = SLEEPING;
     }
+    else p->state = RUNNABLE;
     sched();
 
     // Tidy up.
@@ -727,27 +743,31 @@ void kthread_exit(){
     struct thread * curthread = mythread();
     struct thread * t;
 //    struct proc *p;
-    int areAllout = 0;
+    int areAllout = 1;
     acquire(curproc->ttlock);
 
 
-    if(curthread->parent!=0)
-        // Parent might be sleeping in wait().
-        wakeup1(&curthread->tid);
+    wakeup1(curthread);
 
 
     for(t=curproc->threads; t<&curproc->threads[NTHREAD]; t++){
         if(t!=curthread && (t->state != UNUSED || t->state != ZOMBIE)){
-            areAllout =  1;
+            areAllout =  0;
 
         }
     }
     curthread->state = ZOMBIE;
+
     release(curproc->ttlock);
 
     if(areAllout == 1){
         exit();
     }
+    acquire(&ptable.lock);
+
+    curproc->state = RUNNABLE;
+
+
     sched();
     panic("zombie exit");
 
@@ -763,28 +783,39 @@ int kthread_join(int thread_id){
     struct proc *curproc = myproc();
     struct thread * currthread = mythread();
     struct thread *t;
+    //struct thread *
 
     acquire(curproc->ttlock);
+    for(t = curproc->threads; t < &curproc->threads[NTHREAD]; t++) {
+
+        if (t->tid == thread_id)
+            goto found;
+    }
+    release(curproc->ttlock);
+    return -1;
+
+    found:
     for(;;){
         // Scan through table looking for exited thread with the tid.
-        for(t = curproc->threads; t < &curproc->threads[NTHREAD]; t++){
-            if(t->tid == thread_id && t->state == ZOMBIE){
-                t->state = UNUSED;
-                kfree(t->kstack);
-                t->kstack=0;
-                t->tid = 0;
-                t->killed = 0;
-                release(&ptable.lock);
-                return 0;
 
-            }
+        if (t->state == ZOMBIE) {
+            t->state = UNUSED;
+            kfree(t->kstack);
+            t->kstack = 0;
+            t->tid = 0;
+            t->killed = 0;
+            release(&ptable.lock);
+            return 0;
+
         }
+
         // if there is no thread with that id its an error.
+
         if( currthread->killed){
             release(&ptable.lock);
             return -1;
         }
-        sleep(&(t->tid),curproc->ttlock);  //DOC: wait-sleep
+        sleep(t,curproc->ttlock);  //DOC: wait-sleep
 
         // Wait for thread to exit.
     }
@@ -793,21 +824,14 @@ int kthread_create(void (*start_func)(), void* stack){
 
     struct proc * proc = myproc();
     struct thread  * curthread = mythread();
-    struct thread * t = allocthread(proc, MAX_STACK_SIZE);
+    struct thread * t = allocthread(proc, KSTACKSIZE);
     if(t == 0)
         return -1;
-    //not sure if this is needed here
-   /* memset(t->tf, 0, sizeof(*t->tf)); //put zeroes
-    t->tf->cs = (SEG_UCODE << 3) | DPL_USER; // define user segment code
-    t->tf->ds = (SEG_UDATA << 3) | DPL_USER   t->tf->es = t->tf->ds;
 
-*/
-    t->tf->cs = curthread->tf->cs; // user code segment
-    t->tf->ds = curthread->tf->ds; // user data+stack
-
+    *t->tf = *curthread->tf;
     t->tf->eip = (uint)start_func;
     t->tf->esp = (uint)(stack+MAX_STACK_SIZE); // start point in stack
-    t->tf->eflags = FL_IF;
+    t->tf->eax = 0;
     t->myproc = proc;
 
     acquire(proc->ttlock);
@@ -820,6 +844,140 @@ int kthread_create(void (*start_func)(), void* stack){
 }
 
 
+int kthread_mutex_alloc(){
+
+    struct proc* curproc = myproc();
+    struct kthread_mutex* m;
+    int i = 0;
+    acquire(&mtable.lock);
+
+    for(m = mtable.mutex; m < &mtable.mutex[MAX_MUTEXES]; m++){
+        if(m->allocated == 0){
+            m->allocated = 1;
+            curproc->mid[i] = 1;
+            //initlock(&m->lk, "mutex lock");
+            m->name = curproc->name;
+            m->locked = 0;
+            m->tid = 0;
+            release(&mtable.lock);
+            return i;
+        }
+        i++;
+    }
+    release(&mtable.lock);
+    return -1;
+}
 
 
 
+int kthread_mutex_dealloc(int mutex_id){
+
+    if (mutex_id < 0 || mutex_id >= MAX_MUTEXES)
+        return -1;
+
+    struct kthread_mutex* m = &mtable.mutex[mutex_id];
+    struct proc* curproc = myproc();
+
+    if (curproc->mid[mutex_id]==0){
+        return -1;
+    }
+
+    acquire(&mtable.lock);
+
+    if(m->allocated == 0) {
+        release(&mtable.lock);
+        return -1;
+    }
+    if(m->locked == 1) {
+        release(&mtable.lock);
+        return -1;
+    }
+    //if not locked there is no other thread waiting for this mutex
+    m->allocated = 0;
+    curproc->mid[mutex_id] = 0;
+    m->name = "";
+    m->locked = 0;
+    m->tid = 0;
+    release(&mtable.lock);
+    return 0;
+}
+int kthread_mutex_lock(int mutex_id){
+
+    if (mutex_id < 0 || mutex_id >= MAX_MUTEXES)
+        return -1;
+
+    struct kthread_mutex* m = &mtable.mutex[mutex_id];
+    struct proc* curproc = myproc();
+    struct thread* curthread = mythread();
+
+    if (curproc->mid[mutex_id]==0){
+        return -1;
+    }
+
+    acquire(&mtable.lock);
+    if(m->allocated == 1) {
+        release(&mtable.lock);
+        return -1;
+    }
+    while (m->locked == 1) {
+        acquire(curproc->ttlock);
+        curthread->blocked = 1;
+        release(curproc->ttlock);
+        sleep(m, &mtable.lock);
+    }
+
+    m->locked = 1;
+    m->tid = curthread->tid;
+    release(&mtable.lock);
+    return 0;
+
+
+}
+
+int kthread_mutex_unlock(int mutex_id){
+
+    if (mutex_id < 0 || mutex_id >= MAX_MUTEXES)
+        return -1;
+
+    struct kthread_mutex* m = &mtable.mutex[mutex_id];
+    struct proc* curproc = myproc();
+    struct thread* curthread = mythread();
+
+    if (curproc->mid[mutex_id]==0){
+        return -1;
+    }
+
+    acquire(&mtable.lock);
+    if(m->allocated == 1) {
+        release(&mtable.lock);
+        return -1;
+    }
+    struct thread* t = curthread;
+    t++;
+    while(t != curthread) {
+
+        if(t->blocked == 1 && m == t->chan){
+            acquire(curproc->ttlock);
+            t->chan = 0;
+            t->state = RUNNABLE;
+            release(curproc->ttlock);
+            acquire(&ptable.lock);
+            t->myproc->state = RUNNABLE;
+            release(&ptable.lock);
+            t->blocked = 0;
+            m->tid = curthread->tid;
+            release(&mtable.lock);
+            return 0;
+        }
+        t++;
+        if(t == &curproc->threads[NTHREAD]){
+            t=curproc->threads;
+        }
+
+    }
+
+    m->locked = 0;
+    m->tid = 0;
+    release(&mtable.lock);
+    return 0;
+}

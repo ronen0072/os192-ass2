@@ -1,3 +1,4 @@
+#include "kthread_mutex.h"
 #define MAX_STACK_SIZE 4000
 #define MAX_MUTEXES 64
 
@@ -15,6 +16,8 @@ struct thread {
   struct trapframe *tf;        // Trap frame for current syscall
   struct thread * parent;       // TODO: not sure if needed
   struct proc * myproc;
+  int blocked;
+
 
 };
 /********************************
