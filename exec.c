@@ -16,8 +16,10 @@ void kill_threads(struct proc * p){
   int k=0;
   acquire(p->ttlock);
   for(t=p->threads;t< &p->threads[NTHREAD];t++){
-    if(t!=curthread && t->state!=UNUSED)
-      t->killed = 1;
+    if(t!=curthread && t->state!=UNUSED){
+        t->killed = 1;
+    }
+
 
       //wake the thread if he is sleeping so he will be killed;
     if(t->state == SLEEPING)
@@ -36,8 +38,10 @@ void kill_threads(struct proc * p){
             k++;
           // once a thread is zombie make it available again
           if(t->state == ZOMBIE){
+
               kfree(t->kstack);
               t->kstack = 0;
+              t->blocked = 0;
               t->state = UNUSED;
               continue;
           }
@@ -46,6 +50,13 @@ void kill_threads(struct proc * p){
     }
       release(p->ttlock);
     //let another cpu catch it;
+  }
+  //dealocate all mutexes
+  for(int i=0;i<MAX_MUTEXES;i++){
+      if(p->mid[i] == 1){
+         kthread_mutex_dealloc(i);
+
+      }
   }
 
 

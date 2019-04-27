@@ -373,7 +373,7 @@ exit(void)
 
     }
 
-    //count number of Zombie children;
+    //count number of Zombies in proc;
     curthread->state = ZOMBIE;
     for(t=curproc->threads; t<&curproc->threads[NTHREAD]; t++){
         if(t->state == ZOMBIE || t->state == UNUSED)
@@ -756,9 +756,18 @@ void kthread_exit(){
 
         }
     }
+
     curthread->state = ZOMBIE;
 
+
     release(curproc->ttlock);
+
+//
+//    //unlock any mutex the thread might be holding
+//    for(int i=0;i<MAX_MUTEXES;i++){
+//        if(kthread_mutex_unlock(i)==0)
+//            cprintf("holding mutex lock!");
+//    }
 
     if(areAllout == 1){
         exit();
@@ -912,22 +921,30 @@ int kthread_mutex_lock(int mutex_id){
     struct proc* curproc = myproc();
     struct thread* curthread = mythread();
 
+    acquire(&ptable.lock);
     if (curproc->mid[mutex_id]==0){
         return -1;
     }
-
+    release(&ptable.lock);
     acquire(&mtable.lock);
     if(m->allocated == 0) {
         cprintf("not allocated\n");
         release(&mtable.lock);
         return -1;
     }
-    while (m->locked == 1) {
+    if (m->locked == 1) {
         acquire(curproc->ttlock);
         curthread->blocked = 1;
         release(curproc->ttlock);
         sleep(m, &mtable.lock);
     }
+
+    acquire(curproc->ttlock);
+    if(curthread->blocked == 1){
+        release(curproc->ttlock);
+        panic("Thread is Blocked");
+    }
+    release(curproc->ttlock);
 
     m->locked = 1;
     m->tid = curthread->tid;
@@ -946,29 +963,39 @@ int kthread_mutex_unlock(int mutex_id){
     struct proc* curproc = myproc();
     struct thread* curthread = mythread();
 
+
+    acquire(&ptable.lock);
+
     if (curproc->mid[mutex_id]==0){
+        release(&ptable.lock);
         return -1;
     }
-
+    release(&ptable.lock);
     acquire(&mtable.lock);
+
+
     if(m->allocated == 0) {
+        release(&mtable.lock);
+        return -1;
+    }
+    //make sure calling thread is holding thread
+    if(curthread->tid != mtable.mutex[mutex_id].tid ){
         release(&mtable.lock);
         return -1;
     }
     struct thread* t = curthread;
     t++;
+    if(t == &curproc->threads[NTHREAD]){
+        t=curproc->threads;
+    }
     while(t != curthread) {
-
+        acquire(curproc->ttlock);
         if(t->blocked == 1 && m == t->chan){
-            acquire(curproc->ttlock);
             t->chan = 0;
             t->state = RUNNABLE;
             release(curproc->ttlock);
-            acquire(&ptable.lock);
-            t->myproc->state = RUNNABLE;
-            release(&ptable.lock);
             t->blocked = 0;
-            m->tid = curthread->tid;
+            m->tid = t->tid;
             release(&mtable.lock);
             return 0;
         }
@@ -976,7 +1003,7 @@ int kthread_mutex_unlock(int mutex_id){
         if(t == &curproc->threads[NTHREAD]){
             t=curproc->threads;
         }
-
+        release(curproc->ttlock);
     }
 
     m->locked = 0;
