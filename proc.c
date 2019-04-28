@@ -887,10 +887,16 @@ int kthread_mutex_dealloc(int mutex_id){
     struct kthread_mutex* m = &mtable.mutex[mutex_id];
     struct proc* curproc = myproc();
 
+
+    acquire(curproc->ttlock);
+    //("%d\n", kthread_id());
     if (curproc->mid[mutex_id]==0){
+        release(curproc->ttlock);
         return -1;
     }
+    //cprintf("%d\n", kthread_id());
 
+    release(curproc->ttlock);
     acquire(&mtable.lock);
 
     if(m->allocated == 0) {
@@ -903,11 +909,14 @@ int kthread_mutex_dealloc(int mutex_id){
     }
     //if not locked there is no other thread waiting for this mutex
     m->allocated = 0;
+    acquire(curproc->ttlock);
     curproc->mid[mutex_id] = 0;
+    release(curproc->ttlock);
     m->name = "";
     m->locked = 0;
     m->tid = 0;
     release(&mtable.lock);
+    cprintf("%d\n", kthread_id());
     return 0;
 }
 int kthread_mutex_lock(int mutex_id){
@@ -929,6 +938,11 @@ int kthread_mutex_lock(int mutex_id){
     acquire(&mtable.lock);
     if(m->allocated == 0) {
         cprintf("not allocated\n");
+        release(&mtable.lock);
+        return -1;
+    }
+    if (m->tid == curthread->tid) {
+        cprintf("the mutex is already lock by this thread\n");
         release(&mtable.lock);
         return -1;
     }
