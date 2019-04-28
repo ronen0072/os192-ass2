@@ -473,6 +473,7 @@ scheduler(void)
     struct thread * t;
     c->proc = 0;
     c->thread = 0;
+    c->thread = 0;
 
     for(;;){
         // Enable interrupts on this processor.
@@ -888,35 +889,37 @@ int kthread_mutex_dealloc(int mutex_id){
     struct proc* curproc = myproc();
 
 
-    acquire(curproc->ttlock);
+    acquire(&ptable.lock);
     //("%d\n", kthread_id());
+    // if lock is not allocated by proc
     if (curproc->mid[mutex_id]==0){
-        release(curproc->ttlock);
+        release(&ptable.lock);
         return -1;
     }
     //cprintf("%d\n", kthread_id());
 
-    release(curproc->ttlock);
+    release(&ptable.lock);
     acquire(&mtable.lock);
-
+// if not allocated
     if(m->allocated == 0) {
         release(&mtable.lock);
         return -1;
     }
+    // if is locked
     if(m->locked == 1) {
         release(&mtable.lock);
         return -1;
     }
     //if not locked there is no other thread waiting for this mutex
     m->allocated = 0;
-    acquire(curproc->ttlock);
+    acquire(&ptable.lock);
     curproc->mid[mutex_id] = 0;
-    release(curproc->ttlock);
+    release(&ptable.lock);
     m->name = "";
     m->locked = 0;
     m->tid = 0;
     release(&mtable.lock);
-    cprintf("%d\n", kthread_id());
+   // cprintf("%d\n", kthread_id());
     return 0;
 }
 int kthread_mutex_lock(int mutex_id){
@@ -932,6 +935,7 @@ int kthread_mutex_lock(int mutex_id){
 
     acquire(&ptable.lock);
     if (curproc->mid[mutex_id]==0){
+        release(&ptable.lock);
         return -1;
     }
     release(&ptable.lock);
@@ -942,7 +946,7 @@ int kthread_mutex_lock(int mutex_id){
         return -1;
     }
     if (m->tid == curthread->tid) {
-        cprintf("the mutex is already lock by this thread\n");
+        cprintf("the mutex is already locked by this thread\n");
         release(&mtable.lock);
         return -1;
     }
@@ -993,7 +997,7 @@ int kthread_mutex_unlock(int mutex_id){
         return -1;
     }
     //make sure calling thread is holding thread
-    if(curthread->tid != mtable.mutex[mutex_id].tid ){
+    if(curthread->tid !=m->tid ){
         release(&mtable.lock);
         return -1;
     }

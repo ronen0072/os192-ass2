@@ -36,6 +36,8 @@ int kthread_mutex_unlock(int mutex_id);
 
 
 int mutex_tid(int mid);
+
+
 /*
 trnmnt_tree* trnmnt_tree_alloc(int depth);
 int trnmnt_tree_dealloc(trnmnt_tree* tree);
