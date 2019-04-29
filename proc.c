@@ -101,11 +101,14 @@ struct  thread  * allocthread(struct proc * p, uint stack_size){
     struct thread * t;
     char *sp;
     acquire(p->ttlock);
-
+    int indx=0;
     //look for a thread (should be first)
     for(t = p->threads; t < &p->threads[NTHREAD]; t++){
-        if(t->state!= UNUSED)
+        if(t->state!= UNUSED){
+            indx++;
             continue;
+        }
+
         else goto found;
     }
 
@@ -114,7 +117,7 @@ struct  thread  * allocthread(struct proc * p, uint stack_size){
 
     found:
     t->state = EMBRYO;
-    t->tid = nexttid++;
+    t->tid = indx;
     t->myproc = p;
     release(p->ttlock);
 
@@ -422,7 +425,7 @@ wait(void)
                 //cprintf("got to wait with ZOMBIE child");
                 // Found one. clean threads
                 for(t=p->threads; t<&p->threads[NTHREAD]; t++){
-                    t->tid = 0;
+                    t->tid = -1;
                     t->killed = 0;
                     if(t->state == ZOMBIE){
                         t->state = UNUSED;
@@ -812,7 +815,7 @@ int kthread_join(int thread_id){
             t->state = UNUSED;
             kfree(t->kstack);
             t->kstack = 0;
-            t->tid = 0;
+            t->tid = -1;
             t->killed = 0;
             release(&ptable.lock);
             return 0;
@@ -868,7 +871,7 @@ int kthread_mutex_alloc(){
             //initlock(&m->lk, "mutex lock");
             m->name = curproc->name;
             m->locked = 0;
-            m->tid = 0;
+            m->tid = -1;
             release(&mtable.lock);
             return i;
         }
@@ -917,7 +920,7 @@ int kthread_mutex_dealloc(int mutex_id){
     release(&ptable.lock);
     m->name = "";
     m->locked = 0;
-    m->tid = 0;
+    m->tid = -1;
     release(&mtable.lock);
    // cprintf("%d\n", kthread_id());
     return 0;
@@ -1025,7 +1028,7 @@ int kthread_mutex_unlock(int mutex_id){
     }
 
     m->locked = 0;
-    m->tid = 0;
+    m->tid = -1;
     release(&mtable.lock);
     return 0;
 }
@@ -1037,30 +1040,3 @@ int mutex_tid(int mid){
 
     return mtable.mutex[mid].tid;
 }
-
-//trnmnt_tree* trnmnt_tree_alloc(int depth) {
-//
-//}
-//int trnmnt_tree_dealloc(trnmnt_tree* tree){]}
-//int trnmnt_tree_acquire(trnmnt_tree* tree,int ID){
-//
-//}
-//int trnmnt_tree_acquire_helper(trnmnt_tree* tree,int index) {
-//    if(index == 0){
-//        return kthread_mutex_unlock(tree[0]);
-//    }
-//    kthread_mutex_unlock(tree[index]);
-//    trnmnt_tree_release_helper(tree, (index - 1)/2);
-//
-//}
-//int trnmnt_tree_release(trnmnt_tree* tree,int ID) {
-//
-//}
-//
-//int trnmnt_tree_release_helper(trnmnt_tree* tree,int index) {
-//    if(index == 0){
-//        return kthread_mutex_unlock(tree[0]);
-//    }
-//    trnmnt_tree_release_helper(tree, (index - 1)/2);
-//    return kthread_mutex_unlock(tree[index]);
-//}
