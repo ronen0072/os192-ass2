@@ -19,9 +19,7 @@ void kill_threads(struct proc * p){
     if(t!=curthread && t->state!=UNUSED){
         t->killed = 1;
     }
-
-
-      //wake the thread if he is sleeping so he will be killed;
+     //wake the thread if he is sleeping so he will be killed;
     if(t->state == SLEEPING)
         t->state = RUNNABLE;
 
@@ -31,6 +29,7 @@ void kill_threads(struct proc * p){
 
   // wait until all other threads are killed
   while (k < NTHREAD-1){
+
     k=0;
       acquire(p->ttlock);
     for (t = p->threads; t< &p->threads[NTHREAD]; t++){
@@ -38,7 +37,7 @@ void kill_threads(struct proc * p){
             k++;
           // once a thread is zombie make it available again
           if(t->state == ZOMBIE){
-
+              t->tid = -1;
               kfree(t->kstack);
               t->kstack = 0;
               t->blocked = 0;

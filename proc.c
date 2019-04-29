@@ -392,7 +392,7 @@ exit(void)
             numZombies++;
     }
     // cprintf("all kids are Zombies\n");
-
+    //cprintf("numZombies%d\n",numZombies);
     if(numZombies == NTHREAD)
         curproc->state = ZOMBIE;
     else{
@@ -783,6 +783,7 @@ void kthread_exit(){
 //    }
 
     if(areAllout == 1){
+        cprintf("allout\n");
         exit();
     }
     acquire(&ptable.lock);
@@ -802,10 +803,15 @@ int kthread_id(){
 
 int kthread_join(int thread_id){
 
+
     struct proc *curproc = myproc();
     struct thread * currthread = mythread();
     struct thread *t;
     //struct thread *
+
+
+    if(thread_id == currthread->tid || thread_id < 0)
+        return -1;
 
     acquire(curproc->ttlock);
     for(t = curproc->threads; t < &curproc->threads[NTHREAD]; t++) {
@@ -815,6 +821,7 @@ int kthread_join(int thread_id){
     }
     release(curproc->ttlock);
     return -1;
+
 
     found:
     for(;;){
@@ -852,7 +859,7 @@ int kthread_create(void (*start_func)(), void* stack){
 
     *t->tf = *curthread->tf;
     t->tf->eip = (uint)start_func;
-    t->tf->esp = (uint)(stack+MAX_STACK_SIZE); // start point in stack
+    t->tf->esp = (uint)(stack/*+MAX_STACK_SIZE*/); // start point in stack
     t->tf->eax = 0;
     t->myproc = proc;
 

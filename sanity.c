@@ -4,7 +4,7 @@
 #include "fcntl.h"
 #include "tournament_tree.h"
 
-#define MAX_STACK_SIZE 4000
+#define MAX_STACK_SIZE 500
 
 int testnum = 20;
 int success=0, fail=0,ans=-1, fibNum=10,mid=-1;
@@ -330,7 +330,7 @@ void make_test(void (*f)(void) , int expected ,char * test_name){
 int main(void){
 
     // __________________KTHREAD___________________
-   /* make_test(test_forking,20,"test_forking");
+    make_test(test_forking,20,"test_forking");
     make_test(sanity_kthread,1,"sanity_kthread");
     make_test(test_full_kthread,15,"sanity_kthread");
     make_test(create_extra_kthread,1,"create_extra_kthread");
@@ -352,7 +352,7 @@ int main(void){
     num_threads = 7; // half full threads
     make_test(mutex_lock,num_threads,"mutex_lock half threads");
     num_threads = 15; // all threads
-    make_test(mutex_lock,num_threads,"mutex_lock all threads");*/
+    make_test(mutex_lock,num_threads,"mutex_lock all threads");
 
 
     // __________________tournament_tree ______________________

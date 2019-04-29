@@ -74,6 +74,10 @@ sys_sleep(void)
             release(&tickslock);
             return -1;
         }
+        if(mythread()->killed){
+            release(&tickslock);
+            return -1;
+        }
         sleep(&ticks, &tickslock);
     }
     release(&tickslock);

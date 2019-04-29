@@ -1755,17 +1755,17 @@ main(int argc, char *argv[])
     exit();
   }
   close(open("usertests.ran", O_CREATE));
-//  argptest();
-//  createdelete();
-//  linkunlink();
-//  concreate();
-//  fourfiles();
-//  sharedfd();
-//
-//  bigargtest();
-//  bigwrite();
-//  bigargtest();
-//  bsstest();
+  argptest();
+  createdelete();
+  linkunlink();
+  concreate();
+  fourfiles();
+  sharedfd();
+
+  bigargtest();
+  bigwrite();
+  bigargtest();
+  bsstest();
   sbrktest();
   validatetest();
 
