@@ -49,15 +49,20 @@ void kill_threads(struct proc * p){
 
     }
       release(p->ttlock);
+
     //let another cpu catch it;
   }
-  //dealocate all mutexes
+  //clear all mutexes
+    acquire(p->ttlock);
   for(int i=0;i<MAX_MUTEXES;i++){
-      if(p->mid[i] == 1){
-         kthread_mutex_dealloc(i);
 
+      if(p->mid[i] == 1){
+      //   kthread_mutex_dealloc(i);
+          p->mid[i] =0;
       }
   }
+    release(p->ttlock);
+
 
 
 
