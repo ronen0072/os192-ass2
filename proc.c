@@ -1037,3 +1037,30 @@ int mutex_tid(int mid){
 
     return mtable.mutex[mid].tid;
 }
+
+//trnmnt_tree* trnmnt_tree_alloc(int depth) {
+//
+//}
+//int trnmnt_tree_dealloc(trnmnt_tree* tree){]}
+//int trnmnt_tree_acquire(trnmnt_tree* tree,int ID){
+//
+//}
+//int trnmnt_tree_acquire_helper(trnmnt_tree* tree,int index) {
+//    if(index == 0){
+//        return kthread_mutex_unlock(tree[0]);
+//    }
+//    kthread_mutex_unlock(tree[index]);
+//    trnmnt_tree_release_helper(tree, (index - 1)/2);
+//
+//}
+//int trnmnt_tree_release(trnmnt_tree* tree,int ID) {
+//
+//}
+//
+//int trnmnt_tree_release_helper(trnmnt_tree* tree,int index) {
+//    if(index == 0){
+//        return kthread_mutex_unlock(tree[0]);
+//    }
+//    trnmnt_tree_release_helper(tree, (index - 1)/2);
+//    return kthread_mutex_unlock(tree[index]);
+//}
