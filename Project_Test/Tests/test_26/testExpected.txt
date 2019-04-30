@@ -1,0 +1,10 @@
+$ Attempting to join thread 1
+mutual exclusion satisfied
+Finished joing thread 1
+Attempting to join thread 2
+Finished joing thread 2
+Attempting to join thread 3
+Finished joing thread 3
+Attempting to join thread 4
+Finished joing thread 4
+$ $ Finished Yehonatan Peleg Test, quiting...

@@ -1,0 +1,92 @@
+$ Creating thread 1
+Created thread 1 successfully
+Creating thread 2
+Created thread 2 successfully
+Creating thread 3
+Created thread 3 successfully
+Creating thread 4
+Created thread 4 successfully
+Creating thread 5
+Created thread 5 successfully
+Creating thread 6
+Created thread 6 successfully
+Creating thread 7
+Created thread 7 successfully
+Creating thread 8
+Created thread 8 successfully
+Creating thread 9
+Created thread 9 successfully
+Creating thread 10
+Created thread 10 successfully
+Creating thread 11
+Created thread 11 successfully
+Creating thread 12
+Created thread 12 successfully
+Creating thread 13
+Created thread 13 successfully
+Creating thread 14
+Created thread 14 successfully
+Creating thread 15
+Created thread 15 successfully
+Starting joining threads, should indicate when each thread was sucessfully joined soon
+Attempting to join thread 1
+Finished joing thread 1
+Attempting to join thread 2
+Finished joing thread 2
+Attempting to join thread 3
+Finished joing thread 3
+Attempting to join thread 4
+Finished joing thread 4
+Attempting to join thread 5
+Finished joing thread 5
+Attempting to join thread 6
+Finished joing thread 6
+Attempting to join thread 7
+Finished joing thread 7
+Attempting to join thread 8
+Finished joing thread 8
+Attempting to join thread 9
+Finished joing thread 9
+Attempting to join thread 10
+Finished joing thread 10
+Attempting to join thread 11
+Finished joing thread 11
+Attempting to join thread 12
+Finished joing thread 12
+Attempting to join thread 13
+Finished joing thread 13
+Attempting to join thread 14
+Finished joing thread 14
+Attempting to join thread 15
+Finished joing thread 15
+Attempting to join thread 1
+Thread 1 isn't my thread anymore, as it should be
+Attempting to join thread 2
+Thread 2 isn't my thread anymore, as it should be
+Attempting to join thread 3
+Thread 3 isn't my thread anymore, as it should be
+Attempting to join thread 4
+Thread 4 isn't my thread anymore, as it should be
+Attempting to join thread 5
+Thread 5 isn't my thread anymore, as it should be
+Attempting to join thread 6
+Thread 6 isn't my thread anymore, as it should be
+Attempting to join thread 7
+Thread 7 isn't my thread anymore, as it should be
+Attempting to join thread 8
+Thread 8 isn't my thread anymore, as it should be
+Attempting to join thread 9
+Thread 9 isn't my thread anymore, as it should be
+Attempting to join thread 10
+Thread 10 isn't my thread anymore, as it should be
+Attempting to join thread 11
+Thread 11 isn't my thread anymore, as it should be
+Attempting to join thread 12
+Thread 12 isn't my thread anymore, as it should be
+Attempting to join thread 13
+Thread 13 isn't my thread anymore, as it should be
+Attempting to join thread 14
+Thread 14 isn't my thread anymore, as it should be
+Attempting to join thread 15
+Thread 15 isn't my thread anymore, as it should be
+$ $ Finished Yehonatan Peleg Test, quiting...

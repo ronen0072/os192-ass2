@@ -1,0 +1,21 @@
+$ thread 1 entering
+thread 1 exiting
+thread 2 entering
+thread 2 exiting
+thread 3 entering
+thread 3 exiting
+thread 4 entering
+thread 4 exiting
+thread 5 entering
+thread 5 exiting
+thread 6 entering
+thread 6 exiting
+thread 7 entering
+thread 7 exiting
+thread 8 entering
+thread 8 exiting
+thread 9 entering
+thread 9 exiting
+thread 10 entering
+thread 10 exiting
+$ $ Finished Yehonatan Peleg Test, quiting...

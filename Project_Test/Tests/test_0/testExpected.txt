@@ -1,0 +1,3 @@
+$ fork test
+fork test OK
+$ $ Finished Yehonatan Peleg Test, quiting...
