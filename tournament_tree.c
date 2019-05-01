@@ -19,6 +19,7 @@ trnmnt_tree* trnmnt_tree_alloc(int depth) {
     tree->depth = depth;
     int i=0;
     tree->tree = malloc(tree->size * (sizeof(int)));
+    // allocate mutexes for the tree
     for( i=0; i< tree->size ; i++){
         tree->tree[i] = kthread_mutex_alloc();
         if(tree->tree[i] < 0) //if  cant allocate mutexes (might be out of mutexes)
@@ -29,6 +30,7 @@ trnmnt_tree* trnmnt_tree_alloc(int depth) {
 
 
     bad:
+    // deallocate all mutexes
     for(int j = 0 ; j<i ; j++){
         if(kthread_mutex_dealloc(tree->tree[j])< 0 )
             printf(1,"couldn't free mutexes");
@@ -45,7 +47,7 @@ int trnmnt_tree_dealloc(trnmnt_tree* tree){
     if(tree == 0 || tree->tree == 0){
         return -1;
     }
-
+// deallocate all mutexes
     for(int j = 0 ; j<tree->size ; j++){
         if(kthread_mutex_dealloc(tree->tree[j]) < 0)
             return -1;

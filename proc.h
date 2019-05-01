@@ -53,7 +53,7 @@ struct proc {
   struct inode *cwd;           // Current directory
   struct thread threads[NTHREAD];   // array of threads in process (max is 16)
   struct spinlock * ttlock;
-  int mid[MAX_MUTEXES];
+  volatile int mid[MAX_MUTEXES];
 
   char name[16];               // Process name (debugging)
 

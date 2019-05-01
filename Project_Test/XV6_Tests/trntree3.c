@@ -16,31 +16,38 @@
 trnmnt_tree* tree;
 volatile int dontStart;
 int result;
+volatile int have1 , have2;
 
 #define THREAD_STACK(name) \
     void * name = ((char *) malloc(STACK_SIZE * sizeof(char))) + STACK_SIZE;
 
 void threadStart_1(){
     int result;
-    while(dontStart){} 
+    while(dontStart){}
 
     tree = trnmnt_tree_alloc(1); 
     if(tree == 0){ 
         printf(1,"1 trnmnt_tree allocated unsuccessfully\n"); 
-    } 
+    }
+    have1=1;
 
+    sleep(50);
     result = trnmnt_tree_acquire(tree, 0); 
     if(result < 0){  
         printf(1,"2 trnmnt_tree locked unsuccessfully\n"); 
     } 
 
-    sleep(500);
+    //sleep(500);
+
+
 
     result = trnmnt_tree_release(tree, 0); 
     if(result < 0){ 
         printf(1,"3 trnmnt_tree unlocked unsuccessfully\n"); 
-    } 
+    }
+    have1=0;
 
+    while(have2==1);
     result = trnmnt_tree_dealloc(tree); 
     if(result == 0){ 
         printf(1,"4 trnmnt_tree deallocated successfully where it should not have been\n"); 
@@ -51,25 +58,26 @@ void threadStart_1(){
 
 void threadStart_2(){
     while(dontStart){} 
-    sleep(200);
-    
+
+    while(have1==0);
+
     result = trnmnt_tree_acquire(tree, 1); 
     if(result < 0){  
         printf(1,"5 trnmnt_tree locked unsuccessfully\n"); 
     } 
     
-    sleep(300);
-    
+
     result = trnmnt_tree_release(tree, 1); 
     if(result < 0){ 
         printf(1,"6 trnmnt_tree unlocked unsuccessfully\n"); 
-    } 
+    }
+    while(have1==1);
 
     result = trnmnt_tree_dealloc(tree); 
     if(result == -1){ 
         printf(1,"7 trnmnt_tree deallocated unsuccessfully\n"); 
     }
-
+    have2=0;
     kthread_exit(); 
 }
 
@@ -85,6 +93,7 @@ int main(int argc, char *argv[]){
 }
 
 void initiateMutexTest(){
+    have1 = 0, have2 = 1;
     dontStart = 1;
     int pids[THREAD_NUM];
 

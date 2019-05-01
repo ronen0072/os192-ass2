@@ -6,6 +6,10 @@
 
 #define MAX_STACK_SIZE 500
 
+
+#define STACK_CREATE(name) \
+    void * name = ((char *) malloc(MAX_STACK_SIZE * sizeof(char))) + MAX_STACK_SIZE;
+
 int testnum = 20;
 int success=0, fail=0,ans=-1, fibNum=10,mid=-1;
 int pids[20];
@@ -213,10 +217,10 @@ void test_exit_process(){
                     printf(1,"bad create\n");
                     exit();
                 }
-               // else printf(1,"created %d\n",j);
+                // else printf(1,"created %d\n",j);
             }
-           // fib(10);
-           sleep(100);
+            // fib(10);
+            sleep(100);
             exit();
         }
         sleep(200);
@@ -433,6 +437,109 @@ void test_tree_tournament(){
 
 
 
+volatile int have1 , have2;
+int dontStart;
+
+void threadStart_1(void){
+    int result;
+    while(dontStart);
+
+    tree = trnmnt_tree_alloc(1);
+    if(tree == 0){
+        printf(1,"1 trnmnt_tree allocated unsuccessfully\n");
+    }
+    else ans++;
+    have1=1;
+
+    sleep(50);
+    result = trnmnt_tree_acquire(tree, 0);
+    if(result < 0){
+        printf(1,"2 trnmnt_tree locked unsuccessfully\n");
+    }else ans++;
+
+    //sleep(500);
+
+    result = trnmnt_tree_release(tree, 0);
+    if(result < 0){
+        printf(1,"3 trnmnt_tree unlocked unsuccessfully\n");
+    }else ans++;
+    have1=0;
+
+    while(have2==1);
+    result = trnmnt_tree_dealloc(tree);
+    if(result == 0){
+        printf(1,"4 trnmnt_tree deallocated successfully where it should not have been\n");
+    }else ans++;
+
+    kthread_exit();
+}
+
+void threadStart_2(void){
+    int result;
+    while(dontStart);
+
+    while(have1==0);
+
+    result = trnmnt_tree_acquire(tree, 1);
+    if(result < 0){
+        printf(1,"5 trnmnt_tree locked unsuccessfully\n");
+    }else ans++;
+
+
+    result = trnmnt_tree_release(tree, 1);
+    if(result < 0){
+        printf(1,"6 trnmnt_tree unlocked unsuccessfully\n");
+    }else ans++;
+    while(have1==1);
+
+    result = trnmnt_tree_dealloc(tree);
+    if(result == -1){
+        printf(1,"7 trnmnt_tree deallocated unsuccessfully\n");
+    }else ans++;
+    have2=0;
+    kthread_exit();
+}
+
+
+void vs_tree_Test(void){
+    have1 = 0, have2 = 1;
+    dontStart = 1;
+    int pids[2];
+
+    STACK_CREATE(threadStack_1)
+    STACK_CREATE(threadStack_2)
+
+    void (*threads_stacks[])(void) =
+            {threadStack_1,
+             threadStack_2};
+
+    sleep(100);
+
+        pids[0] = kthread_create(threadStart_1, threads_stacks[0]);
+        pids[1] = kthread_create(threadStart_2, threads_stacks[1]);
+
+
+    dontStart = 0;
+
+    for(int i = 0;i < 2;i++){
+        printf(1,"Attempting to join thread %d\n",i);
+
+        int result = kthread_join(pids[i]);
+        if(result == 0){
+            ans++;
+            printf(1,"Finished joing thread %d\n",i);
+        }
+        else if(result == -1){
+            printf(1,"Error in joing thread %d\n",i);
+        }
+        else{
+            printf(1,"Unknown result code from join\n");
+        }
+    }
+
+}
+
+
 
 void make_test(void (*f)(void) , int expected ,char * test_name){
 
@@ -463,10 +570,10 @@ int main(void){
 //    make_test(kthread_wrong_join,-1,"kthread_wrong_join");
 //    make_test(test_kthread_exit,1,"test_kthread_exit");
 //    make_test(test_kthread_join,60,"test_kthread_join");
-    make_test(test_exit_process,numproc,"test_exit_process");
+//    make_test(test_exit_process,numproc,"test_exit_process");
 //
 //
-//    // __________________SIMPLE MUTEX___________________
+    // __________________SIMPLE MUTEX___________________
 //    make_test(mutex_alloc,1,"mutex_alloc");
 //    make_test(mutex_dealloc,1,"mutex_dealloc");
 //    make_test(mutex_dealloc_twice,1,"mutex_dealloc_twice");
@@ -486,6 +593,7 @@ int main(void){
     // __________________tournament_tree ______________________
 
 //    make_test(sanity_tree_alloc_dealloc,2,"sanity_tree_alloc_dealloc");
+       make_test(vs_tree_Test,9,"vs_tree_Test");
 
 
 //    for(loopnum = 1;loopnum < 10; loopnum++) {

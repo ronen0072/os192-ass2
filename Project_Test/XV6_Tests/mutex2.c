@@ -69,7 +69,7 @@ int main(int argc, char *argv[]){
 
     printf(1,"Starting allocating a lot of mutexes in different process without deallocating\n");
 
-    for(int i = 0;i < 200;i++){
+    for(int i = 0;i < 4;i++){
         if((pid = fork()) == 0){
             initiateMutexTest();
             kthread_exit();
@@ -133,6 +133,7 @@ void initiateMutexTest(){
     
     for(int i = 0;i < THREAD_NUM;i++){
         kthread_join(pids[i]);
+
     }
 }
 

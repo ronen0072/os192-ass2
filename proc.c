@@ -102,7 +102,7 @@ struct  thread  * allocthread(struct proc * p, uint stack_size){
     char *sp;
     acquire(p->ttlock);
     int indx=0;
-    //look for a thread (should be first)
+    //look for an unused thread
     for(t = p->threads; t < &p->threads[NTHREAD]; t++){
         if(t->state!= UNUSED){
             indx++;
@@ -121,7 +121,7 @@ struct  thread  * allocthread(struct proc * p, uint stack_size){
     t->myproc = p;
     release(p->ttlock);
 
-
+// try to alloct espce in the stack
     if ((t->kstack = kalloc()) == 0) {
         t->state = UNUSED;
         return 0;
@@ -178,7 +178,7 @@ allocproc(void)
     //initlock(&p->ttlock,"threads_lock");
     p->pid = nextpid++;
     release(&ptable.lock);
-
+    //allocate first thread
     if(allocthread(p, KSTACKSIZE) == 0){
         p->state =UNUSED;
         return 0;
@@ -281,7 +281,8 @@ fork(void)
         return -1;
     }
     nt=np->threads;
-    // Copy process state from proc.
+    //at creation of a new process thread is allways first
+    // Copy process and currthread state from proc.
     if((np->pgdir = copyuvm(curproc->pgdir, curproc->sz)) == 0){
         kfree(nt->kstack);
         nt->kstack = 0;
@@ -325,8 +326,10 @@ fork(void)
     return pid;
 }
 //has to happen under lock
+//check if all threads are zombies
 int allzombies(struct proc *curproc , struct thread * curthread){
-
+    if(curproc->state== ZOMBIE)
+        return 1;
     for(struct thread * t=curproc->threads; t<&curproc->threads[NTHREAD]; t++){
         if((curthread == 0 || t != curthread) && (t->state != UNUSED && t->state != ZOMBIE)){
             return 0;
@@ -339,18 +342,12 @@ int allzombies(struct proc *curproc , struct thread * curthread){
 // An exited process remains in the zombie state
 // until its parent calls wait() to find out it exited.
 void
-exit(void)
-{
-
-
+exit(void){
     struct proc *curproc = myproc();
-   // cprintf("Exit:%d\n",curproc->pid);
     struct thread * t;
     struct proc *p;
     int fd;
     struct thread * curthread = mythread();
-    int numZombies =0;
-    //cprintf("cpu %d with proc %s is starting exit\n",mycpu()->apicid,myproc()->name);
 
 
     //make all threads exit at trap
@@ -362,15 +359,17 @@ exit(void)
             t->killed = 1;
 
         }
-        if(t->state == SLEEPING) {
-            t->state = RUNNABLE;
-            //t->chan = 0; // thread might have been sleeping, we want to make sure no one wakes it up
-        }
-
-        if(t->state == ZOMBIE || t->state == UNUSED)
-            numZombies++;
+//        if(t->state == SLEEPING) {
+//            t->state = RUNNABLE;
+//            //t->chan = 0; // thread might have been sleeping, we want to make sure no one wakes it up
+//        }
+        if(t->state == RUNNABLE || t->state == SLEEPING)
+            t->state = ZOMBIE;
+//
+//        if(t->state == ZOMBIE || t->state == UNUSED)
+//            numZombies++;
     }
-
+//wait until all threads are zombies
     for(t= curproc->threads; t<&curproc->threads[NTHREAD]; t++){
         if(t!=curthread && t->state != ZOMBIE && t->state != UNUSED)
             sleep(t, &ptable.lock);  //DOC: wait-sleep
@@ -378,7 +377,7 @@ exit(void)
 
 
 
-  //  cprintf("numZombies:%d\n",numZombies);
+    //  cprintf("numZombies:%d\n",numZombies);
 //    if(numZombies < NTHREAD-1) {
 //       // cprintf("returning%d\n",curproc->pid);
 //        curthread->state = ZOMBIE;
@@ -387,8 +386,6 @@ exit(void)
 //        panic("ZOMBIE T");
 //
 //    }
-
-
     release(&ptable.lock);
     if(curproc == initproc)
         panic("init exiting");
@@ -405,30 +402,23 @@ exit(void)
     iput(curproc->cwd);
     end_op();
     curproc->cwd = 0;
-   // cprintf("Got to do acquire:%d\n",curproc->pid);
     acquire(&ptable.lock);
-
-
 
     // Pass abandoned children to init.
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
         if(p->parent == curproc){
-          //  cprintf("proc %s has kids\n",p->name);
+            //  cprintf("proc %s has kids\n",p->name);
             p->parent = initproc;
             if(p->state == ZOMBIE)
                 wakeup1(initproc);
         }
 
     }
-    cprintf("wakeup%d\n",curproc->pid);
+
     // Parent might be sleeping in wait().
     wakeup1(curproc->parent);
-    cprintf("woke%d\n",curproc->pid);
-
     curproc->state = ZOMBIE;
     curthread->state = ZOMBIE;
-    cprintf("Zom%d\n",curproc->pid);
-
 
     // proc will be zombie when last child has exited
     // Jump into the scheduler, never to return.
@@ -443,14 +433,11 @@ exit(void)
 // Wait for a child process to exit and return its pid.
 // Return -1 if this process has no children.
 int
-wait(void)
-{
-
+wait(void){
 
     struct proc *p;
     int havekids, pid;
     struct proc *curproc = myproc();
-//  struct thread * currthrad = mythread();
     struct thread *t;
 
     acquire(&ptable.lock);
@@ -461,12 +448,8 @@ wait(void)
             if(p->parent != curproc)
                 continue;
             havekids = 1;
-            cprintf("N%d\n",p->pid);
 
-
-            if(allzombies(p,0)==1){
-                cprintf("Z%d\n",p->pid);
-                //cprintf("got to wait with ZOMBIE child");
+            if(allzombies(p,0)==1){ // if all proc theards are zombies
                 // Found one. clean threads
                 for(t=p->threads; t<&p->threads[NTHREAD]; t++){
                     if(t->state != UNUSED){
@@ -481,6 +464,7 @@ wait(void)
                     }
                 }
                 pid = p->pid;
+                // reset all mutexes that are owned by the proc
                 for(int index  = 0; index < MAX_MUTEXES; index++){
                     p->mid[index] = 0;
                 }
@@ -492,9 +476,7 @@ wait(void)
                 p->state = UNUSED;
                 release(&ptable.lock);
                 return pid;
-           }
-
-
+            }
         }
 
         // No point waiting if we don't have any children.
@@ -504,9 +486,8 @@ wait(void)
         }
 
         // Wait for children to exit.  (See wakeup1 call in proc_exit.)
-        cprintf("go sleep%d\n",curproc->pid);
         sleep(curproc, &ptable.lock);  //DOC: wait-sleep
-        cprintf("return sleep%d\n",curproc->pid);
+
     }
 }
 
@@ -663,7 +644,7 @@ sleep(void *chan, struct spinlock *lk)
     // Go to sleep.
     curthread->chan = chan;
     int allSleeping = 1;
-
+    // check if all threads are sleeping or so
     for(t = p->threads ; t < &p->threads[NTHREAD]; t++){
         if (t!= curthread && (t->state == RUNNABLE || t->state == RUNNING || t->state == EMBRYO)){
             allSleeping = 0;
@@ -671,11 +652,9 @@ sleep(void *chan, struct spinlock *lk)
         }
 
     }
-
     end:
     if (allSleeping == 1)
     {
-      //  cprintf("all sleep:%d\n",p->pid);
         p->state = SLEEPING;
         curthread->state = SLEEPING;
     }
@@ -803,7 +782,7 @@ procdump(void)
                 for(i=0; i<10 && pc[i] != 0; i++)
                     cprintf(" %p", pc[i]);
             }
-            cprintf("\n");
+            //cprintf("\n");
         }
     }
 }
@@ -811,20 +790,21 @@ procdump(void)
 void kthread_exit(){
     struct proc *curproc = myproc();
     struct thread * curthread = mythread();
-    struct thread * t;
+    //  struct thread * t;
 //    struct proc *p;
 
     acquire(curproc->ttlock);
-    int areAllout  = allzombies(curproc,curthread);
+    wakeup1(curthread);
+    int areAllout  =allzombies(curproc,curthread);
     release(curproc->ttlock);
 
     if(areAllout == 1){
-      //  cprintf("allout:%d\n",curproc->pid);
+        //  cprintf("allout:%d\n",curproc->pid);
         exit();
     }
 
     acquire(curproc->ttlock);
-    wakeup1(curthread);
+
     curthread->state = ZOMBIE;
 
     //cprintf("kexit:%d\n",curproc->pid);
@@ -856,11 +836,12 @@ int kthread_join(int thread_id){
     struct thread *t;
     //struct thread *
 
-
+    //check that the id is valid
     if(thread_id == currthread->tid || thread_id < 0)
         return -1;
 
     acquire(curproc->ttlock);
+    //find the requested thread
     for(t = curproc->threads; t < &curproc->threads[NTHREAD]; t++) {
         if (t->tid == thread_id)
             goto found;
@@ -870,6 +851,7 @@ int kthread_join(int thread_id){
 
 
     found:
+    //wait until requested thread is zombie
     for(;;){
         // Scan through table looking for exited thread with the tid.
 
@@ -932,7 +914,6 @@ int kthread_mutex_alloc(){
         if(m->allocated == 0){
             m->allocated = 1;
             curproc->mid[i] = 1;
-            //initlock(&m->lk, "mutex lock");
             m->name = curproc->name;
             m->locked = 0;
             m->tid = -1;
@@ -955,23 +936,24 @@ int kthread_mutex_dealloc(int mutex_id){
     struct kthread_mutex* m = &mtable.mutex[mutex_id];
     struct proc* curproc = myproc();
 
+    acquire(&mtable.lock);
+    // if not allocated
+    if(m->allocated == 0) {
+        //cprintf("not allocated\n");
+        release(&mtable.lock);
+        return -1;
+    }
+    release(&mtable.lock);
 
     acquire(&ptable.lock);
-    //("%d\n", kthread_id());
     // if lock is not allocated by proc
     if (curproc->mid[mutex_id]==0){
         release(&ptable.lock);
         return -1;
     }
-    //cprintf("%d\n", kthread_id());
-
     release(&ptable.lock);
+
     acquire(&mtable.lock);
-// if not allocated
-    if(m->allocated == 0) {
-        release(&mtable.lock);
-        return -1;
-    }
     // if is locked
     if(m->locked == 1) {
         release(&mtable.lock);
@@ -986,34 +968,40 @@ int kthread_mutex_dealloc(int mutex_id){
     m->locked = 0;
     m->tid = -1;
     release(&mtable.lock);
-    // cprintf("%d\n", kthread_id());
     return 0;
 }
 int kthread_mutex_lock(int mutex_id){
-
+// validate id
     if (mutex_id < 0 || mutex_id >= MAX_MUTEXES) {
-        cprintf("bad id\n");
-        return -1;
+        cprintf("bad id");
+         return -1;
     }
 
     struct kthread_mutex* m = &mtable.mutex[mutex_id];
     struct proc* curproc = myproc();
     struct thread* curthread = mythread();
 
-    acquire(&ptable.lock);
-    if (curproc->mid[mutex_id]==0){
-        release(&ptable.lock);
-        return -1;
-    }
-    release(&ptable.lock);
+
     acquire(&mtable.lock);
+    // if not allocated
     if(m->allocated == 0) {
         cprintf("not allocated\n");
         release(&mtable.lock);
         return -1;
     }
+    release(&mtable.lock);
+
+    acquire(&ptable.lock);
+    if (curproc->mid[mutex_id]==0){
+        cprintf("not of proc\n");
+        release(&ptable.lock);
+        return -1;
+    }
+    release(&ptable.lock);
+
+    acquire(&mtable.lock);
     if (m->tid == curthread->tid) {
-        cprintf("the mutex is already locked by this thread\n");
+        cprintf("allready locked\n");
         release(&mtable.lock);
         return -1;
     }
@@ -1040,7 +1028,7 @@ int kthread_mutex_lock(int mutex_id){
 }
 
 int kthread_mutex_unlock(int mutex_id){
-
+//valiate id
     if (mutex_id < 0 || mutex_id >= MAX_MUTEXES)
         return -1;
 
@@ -1073,6 +1061,8 @@ int kthread_mutex_unlock(int mutex_id){
     if(t == &curproc->threads[NTHREAD]){
         t=curproc->threads;
     }
+
+    //look for a thread waiting for the mutex and give it the key
     while(t != curthread) {
         acquire(curproc->ttlock);
         if(t->blocked == 1 && m == t->chan){
