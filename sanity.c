@@ -104,7 +104,133 @@ void kthread_wrong_join(){
     ans = kthread_join(-5);
 
 }
+void kthread_exiting(){
+    //printf(1,"%d\n",kthread_id());
+    sleep(10*kthread_id());
+    kthread_exit();
 
+}
+void test_kthread_exit(){
+    int pid,rpid;
+    pid = fork();
+    if(pid == 0){
+        for (int j = 0; j < 15; j++) {
+            uint *stack = malloc(MAX_STACK_SIZE);
+            memset(stack, 0, sizeof(*stack));
+            if(kthread_create(kthread_exiting, stack)<0){
+                printf(1,"bad create\n");
+                exit();
+            }
+        }
+        kthread_exit();
+    }
+    printf(1,"Intending to wait for:%d\n", pid);
+    rpid =  wait();
+    printf(1,"finish to wait for:%d\n", pid);
+
+    if(rpid == pid)
+        ans++;
+}
+
+void test_kthread_join(){
+    int tid[30];
+    int rtid;
+    for (int i = 0; i < 15; i++) {
+        uint *stack = malloc(MAX_STACK_SIZE);
+        memset(stack, 0, sizeof(*stack));
+        tid[i] = kthread_create(kthread_exiting, stack);
+        if(tid[i]<0){
+            printf(1,"Couldn't create\n");
+        }
+        else
+            printf(1,"created %d\n",tid[i]);
+    }
+    for (int i = 0; i < 15; i++) {
+        printf(1, "Intending to join for:%d\n", tid[i]);
+        rtid = kthread_join(tid[i]);
+        if(rtid == 0)
+            ans++;
+        printf(1, "finish to join for:%d\n", tid[i]);
+    }
+    for (int i = 0; i < 15; i++) {
+        printf(1, "Intending to join for:%d\n", tid[i]);
+        rtid = kthread_join(tid[i]);
+        if(rtid == -1)
+            ans++;
+        printf(1, "finish to join for:%d\n", tid[i]);
+    }
+    for (int i = 15; i < 30; i++) {
+        uint *stack = malloc(MAX_STACK_SIZE);
+        memset(stack, 0, sizeof(*stack));
+        tid[i] = kthread_create(kthread_exiting, stack);
+        if(tid[i]<0){
+            printf(1,"Couldn't create\n");
+        }
+        else
+            printf(1,"created %d\n",tid[i]);
+    }
+
+    for (int i = 15; i < 30; i++) {
+        printf(1, "Intending to join for:%d\n", tid[i]);
+        rtid = kthread_join(tid[i]);
+        if(rtid == 0)
+            ans++;
+        printf(1, "finish to join for:%d\n", tid[i]);
+    }
+    for (int i = 15; i < 30; i++) {
+        printf(1, "Intending to join for:%d\n", tid[i]);
+        rtid = kthread_join(tid[i]);
+        if(rtid == -1)
+            ans++;
+        printf(1, "finish to join for:%d\n", tid[i]);
+    }
+}
+
+void endlessLoop_or_sleep(){
+    if( kthread_id() %2 == 0){
+        while(1);
+    } else{
+        sleep(10000);
+    }
+    printf(1,"Thread %d exiting, should have been killed by exit\n",kthread_id());
+    kthread_exit();
+}
+
+int  numproc = 10;
+void test_exit_process(){
+    int rpid;
+    int pid[numproc];
+    for (int i=0;i<numproc;i++) {
+        rpid = 0;
+        pid[i] = fork();
+        if (pid[i] == 0) {
+            sleep(200);
+            for (int j = 0; j < 15; j++) {
+                void *stack =  ((char *) malloc(MAX_STACK_SIZE * sizeof(char))) + MAX_STACK_SIZE;
+                // uint *stack = malloc(MAX_STACK_SIZE);
+                memset(stack, 0, sizeof(*stack));
+                if(kthread_create(endlessLoop_or_sleep, stack) < 0){
+                    printf(1,"bad create\n");
+                    exit();
+                }
+               // else printf(1,"created %d\n",j);
+            }
+           // fib(10);
+           sleep(100);
+            exit();
+        }
+        sleep(200);
+    }
+
+    for (int i=0;i<numproc;i++) {
+        printf(1,"Intending to wait for:%d\n", pid[i]);
+        rpid = wait();
+        printf(1,"finish to wait for:%d\n", pid[i]);
+        if(rpid >= 0)
+            ans++;
+    }
+    printf(1,"test_exit_process finised\n");
+}
 void mutex_alloc(){
 
     mid = kthread_mutex_alloc();
@@ -245,7 +371,7 @@ void test_tournament_cs(){
         }
         if (trnmnt_tree_release(tree, kthread_id()) == 0) {
             ans++;
-          //  printf(1, "release success\n");
+            //  printf(1, "release success\n");
         }
     }
     kthread_exit();
@@ -329,61 +455,63 @@ void make_test(void (*f)(void) , int expected ,char * test_name){
 
 int main(void){
 
-    // __________________KTHREAD___________________
-    make_test(test_forking,20,"test_forking");
-    make_test(sanity_kthread,1,"sanity_kthread");
-    make_test(test_full_kthread,15,"sanity_kthread");
-    make_test(create_extra_kthread,1,"create_extra_kthread");
-    make_test(kthread_wrong_join,-1,"kthread_wrong_join");
-
-
-
-    // __________________SIMPLE MUTEX___________________
-    make_test(mutex_alloc,1,"mutex_alloc");
-    make_test(mutex_dealloc,1,"mutex_dealloc");
-    make_test(mutex_dealloc_twice,1,"mutex_dealloc_twice");
-    make_test(mutex_dealloc_non_alocated,1,"mutex_dealloc_non_alocated");
-    make_test(mutex_bad_dealloc,-1,"mutex_bad_dealloc");
-    make_test(sanity_mutex_lock,1,"sanity_mutex_lock");
-    make_test(sanity_mutex_unlock,1,"sanity_mutex_unlock");
-    make_test(sanity_mutex_double_lock,-1,"sanity_mutex_double_lock");
-    num_threads = 2; //two threads
-    make_test(mutex_lock,num_threads,"mutex_lock two threads");
-    num_threads = 7; // half full threads
-    make_test(mutex_lock,num_threads,"mutex_lock half threads");
-    num_threads = 15; // all threads
-    make_test(mutex_lock,num_threads,"mutex_lock all threads");
+//    // __________________KTHREAD___________________
+//    make_test(test_forking,20,"test_forking");
+//    make_test(sanity_kthread,1,"sanity_kthread");
+//    make_test(test_full_kthread,15,"sanity_kthread");
+//    make_test(create_extra_kthread,1,"create_extra_kthread");
+//    make_test(kthread_wrong_join,-1,"kthread_wrong_join");
+//    make_test(test_kthread_exit,1,"test_kthread_exit");
+//    make_test(test_kthread_join,60,"test_kthread_join");
+    make_test(test_exit_process,numproc,"test_exit_process");
+//
+//
+//    // __________________SIMPLE MUTEX___________________
+//    make_test(mutex_alloc,1,"mutex_alloc");
+//    make_test(mutex_dealloc,1,"mutex_dealloc");
+//    make_test(mutex_dealloc_twice,1,"mutex_dealloc_twice");
+//    make_test(mutex_dealloc_non_alocated,1,"mutex_dealloc_non_alocated");
+//    make_test(mutex_bad_dealloc,-1,"mutex_bad_dealloc");
+//    make_test(sanity_mutex_lock,1,"sanity_mutex_lock");
+//    make_test(sanity_mutex_unlock,1,"sanity_mutex_unlock");
+//    make_test(sanity_mutex_double_lock,-1,"sanity_mutex_double_lock");
+//    num_threads = 2; //two threads
+//    make_test(mutex_lock,num_threads,"mutex_lock two threads");
+//    num_threads = 7; // half full threads
+//    make_test(mutex_lock,num_threads,"mutex_lock half threads");
+//    num_threads = 15; // all threads
+//    make_test(mutex_lock,num_threads,"mutex_lock all threads");
 
 
     // __________________tournament_tree ______________________
 
-    make_test(sanity_tree_alloc_dealloc,2,"sanity_tree_alloc_dealloc");
+//    make_test(sanity_tree_alloc_dealloc,2,"sanity_tree_alloc_dealloc");
 
 
-    for(loopnum = 1;loopnum < 10; loopnum++) {
-        num_threads = 2;
-        depth = 1;
-        printf(1,"Test complexity : %d \n", loopnum);
-        make_test(sanity_tree_tournament, num_threads * 2 *loopnum, "sanity_tree_tournament");
-        num_threads = 7;
-        depth = 3;
-        make_test(sanity_tree_tournament, num_threads * 2 *loopnum, "sanity_tree_tournament");
-        num_threads = 15;
-        depth = 4;
-        make_test(sanity_tree_tournament, num_threads * 2 *loopnum, "sanity_tree_tournament");
-    }
-    for(loopnum = 1;loopnum < 10; loopnum++) {
-        num_threads = 2;
-        depth = 1;
-        printf(1,"Test complexity : %d \n", loopnum);
-        make_test(test_tree_tournament, num_threads *loopnum, "test_tree_tournament");
-        num_threads = 7;
-        depth = 3;
-        make_test(test_tree_tournament, num_threads *loopnum, "test_tree_tournament");
-        num_threads = 15;
-        depth = 4;
-        make_test(test_tree_tournament, num_threads *loopnum, "test_tree_tournament");
-    }
+//    for(loopnum = 1;loopnum < 10; loopnum++) {
+//        num_threads = 2;
+//        depth = 1;
+//        printf(1,"Test complexity : %d \n", loopnum);
+//        make_test(sanity_tree_tournament, num_threads * 2 *loopnum, "sanity_tree_tournament");
+//        num_threads = 7;
+//        depth = 3;
+//        make_test(sanity_tree_tournament, num_threads * 2 *loopnum, "sanity_tree_tournament");
+//        num_threads = 15;
+//        depth = 4;
+//        make_test(sanity_tree_tournament, num_threads * 2 *loopnum, "sanity_tree_tournament");
+//    }
+//    for(loopnum = 1;loopnum < 10; loopnum++) {
+//        num_threads = 2;
+//        depth = 1;
+//        printf(1,"Test complexity : %d \n", loopnum);
+//        make_test(test_tree_tournament, num_threads *loopnum, "test_tree_tournament");
+//        num_threads = 7;
+//        depth = 3;
+//        make_test(test_tree_tournament, num_threads *loopnum, "test_tree_tournament");
+//        num_threads = 15;
+//        depth = 4;
+//        make_test(test_tree_tournament, num_threads *loopnum, "test_tree_tournament");
+//    }
     // ___________________SUMMERY_______________________________
     printf(1,"num of success:%d num of failures: %d\n",success,fail );
 

@@ -10,7 +10,7 @@ struct thread {
   void *chan;                  // If non-zero, sleeping on chan (TODO:move completly from proc)
   int tid;                     // Thread ID
   int killed;                   // TODO: for exec and...
-  enum states state;      // Process state
+  volatile enum states state;      // Process state
   struct context *context;     // swtch() here to run thread in process (TODO:the contex is now thread based)
   char * kstack;               // Bottom of kernel stack for this thread
   struct trapframe *tf;        // Trap frame for current syscall

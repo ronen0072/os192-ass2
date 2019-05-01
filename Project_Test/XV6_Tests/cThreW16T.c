@@ -66,7 +66,7 @@ void initiateExecTest();
 
 int main(int argc, char *argv[]){
     initiateExecTest();
-    sleep(500);
+    sleep(100);
     exit();
 }
 
