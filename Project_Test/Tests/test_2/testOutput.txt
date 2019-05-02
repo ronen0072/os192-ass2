@@ -1,3 +1,0 @@
-$ thread 1 entering
-thread 1 exiting
-$ $ Finished Yehonatan Peleg Test, quiting...

@@ -1,4 +1,0 @@
-
-kt_sys8
-    
-quitXV6

@@ -4,11 +4,11 @@
 #include "fcntl.h"
 #include "tournament_tree.h"
 
-#define MAX_STACK_SIZE 500
+#define MAX_STACK_SIZE 4000
 
 
 #define STACK_CREATE(name) \
-    void * name = ((char *) malloc(MAX_STACK_SIZE * sizeof(char))) + MAX_STACK_SIZE;
+    void * name = ((char *) malloc(MAX_STACK_SIZE));
 
 int testnum = 20;
 int success=0, fail=0,ans=-1, fibNum=10,mid=-1;
@@ -51,10 +51,8 @@ void printfibexit(){
 
 void sanity_kthread(){
     int tid;
-    uint *stack;
 
-
-    stack = malloc(MAX_STACK_SIZE);
+    STACK_CREATE(stack)
     memset(stack, 0, sizeof(*stack));
     if ((tid = (kthread_create(printfibexit, stack))) < 0) {
         printf(2, "thread_create error\n");
@@ -70,8 +68,7 @@ void sanity_kthread(){
 void test_full_kthread(){
     int tids[15];
     for(int i=0;i<15;i++){
-
-        uint *stack = malloc(MAX_STACK_SIZE);
+        STACK_CREATE(stack)
         memset(stack, 0, sizeof(*stack));
         if ((tids[i] = (kthread_create(printfibexit, stack))) < 0) {
             printf(2, "thread_create error\n");
@@ -91,8 +88,7 @@ void test_full_kthread(){
 void create_extra_kthread(){
     int tids[16];
     for(int i=0;i<16;i++){
-
-        uint *stack = malloc(MAX_STACK_SIZE);
+        STACK_CREATE(stack)
         memset(stack, 0, sizeof(*stack));
         if ((tids[i] = (kthread_create(printfibexit, stack))) < 0) {
             ans++;
@@ -119,7 +115,7 @@ void test_kthread_exit(){
     pid = fork();
     if(pid == 0){
         for (int j = 0; j < 15; j++) {
-            uint *stack = malloc(MAX_STACK_SIZE);
+            STACK_CREATE(stack)
             memset(stack, 0, sizeof(*stack));
             if(kthread_create(kthread_exiting, stack)<0){
                 printf(1,"bad create\n");
@@ -140,7 +136,7 @@ void test_kthread_join(){
     int tid[30];
     int rtid;
     for (int i = 0; i < 15; i++) {
-        uint *stack = malloc(MAX_STACK_SIZE);
+        STACK_CREATE(stack)
         memset(stack, 0, sizeof(*stack));
         tid[i] = kthread_create(kthread_exiting, stack);
         if(tid[i]<0){
@@ -164,7 +160,7 @@ void test_kthread_join(){
         printf(1, "finish to join for:%d\n", tid[i]);
     }
     for (int i = 15; i < 30; i++) {
-        uint *stack = malloc(MAX_STACK_SIZE);
+        STACK_CREATE(stack)
         memset(stack, 0, sizeof(*stack));
         tid[i] = kthread_create(kthread_exiting, stack);
         if(tid[i]<0){
@@ -210,8 +206,7 @@ void test_exit_process(){
         if (pid[i] == 0) {
             sleep(200);
             for (int j = 0; j < 15; j++) {
-                void *stack =  ((char *) malloc(MAX_STACK_SIZE * sizeof(char))) + MAX_STACK_SIZE;
-                // uint *stack = malloc(MAX_STACK_SIZE);
+                STACK_CREATE(stack)
                 memset(stack, 0, sizeof(*stack));
                 if(kthread_create(endlessLoop_or_sleep, stack) < 0){
                     printf(1,"bad create\n");
@@ -282,9 +277,10 @@ void cs2(){
 }
 
 void mutex_bad_dealloc(){
-    uint *stack1 = malloc(MAX_STACK_SIZE);
+    STACK_CREATE(stack)
+    memset(stack, 0, sizeof(*stack));
     mid = kthread_mutex_alloc();
-    int tid1 = kthread_create(cs2, stack1);
+    int tid1 = kthread_create(cs2, stack);
     //printf(1,"%d\n", kthread_id());
     //printf(1,"dnum:%d\n", dnum);
     while(dnum != 1){}
@@ -339,8 +335,9 @@ void mutex_lock(){
     int tid[num_threads];
     mid = kthread_mutex_alloc();
     for (int i = 0; i <num_threads ; i++) {
-        uint *stack1 = malloc(MAX_STACK_SIZE);
-        tid[i] = kthread_create(cs, stack1);
+        STACK_CREATE(stack)
+        memset(stack, 0, sizeof(*stack));
+        tid[i] = kthread_create(cs, stack);
 
     }
     for (int i = 0; i <num_threads ; i++) {
@@ -373,35 +370,26 @@ void test_tournament_cs(){
             ans++;
             //printf(1, "acquire success\n");
         }
+        else printf(1,"bad acquire\n");
+        //printf(1,"thread:%d acquire\n",kthread_id());
         if (trnmnt_tree_release(tree, kthread_id()) == 0) {
             ans++;
             //  printf(1, "release success\n");
         }
+        else printf(1,"bad release\n");
+        //(1,"thread:%d release\n",kthread_id());
     }
     kthread_exit();
 }
-void tournament_cs(){
 
-    for(int i=0; i<loopnum;i++) {
-        trnmnt_tree_acquire(tree, kthread_id());
-        fib(fibNum);
-        int kthread_tid = kthread_id();
-        int trnmnt_tid = trnmnt_tree_tid(tree);
-        if(kthread_tid == trnmnt_tid)
-            ans++;
-        else
-            printf(1, "kthread_tid:%d , trnmnt_tree_tid:%d\n",kthread_tid, trnmnt_tid);
-        trnmnt_tree_release(tree, kthread_id());
-    }
-    kthread_exit();
-}
 void sanity_tree_tournament(){
     tree = trnmnt_tree_alloc(depth);
     int tid[num_threads];
     if(tree != 0){
 
         for(int i=0; i<num_threads;i++){
-            uint * stack = malloc(MAX_STACK_SIZE);
+            STACK_CREATE(stack)
+            memset(stack, 0, sizeof(*stack));
             tid[i] = kthread_create(test_tournament_cs, stack);
         }
 
@@ -415,13 +403,34 @@ void sanity_tree_tournament(){
     else printf(1,"bad alloc\n");
 }
 
+void tournament_cs(){
+
+    for(int i=0; i<loopnum;i++) {
+        if(trnmnt_tree_acquire(tree, kthread_id()) < 0)
+            printf(1,"bad acquire\n");
+        fib(fibNum);
+        //printf(1,"thread:%d acquire\n",kthread_id());
+        int kthread_tid = kthread_id();
+        int trnmnt_tid = trnmnt_tree_tid(tree);
+        if(kthread_tid == trnmnt_tid)
+            ans++;
+        else
+            printf(1, "kthread_tid:%d , trnmnt_tree_tid:%d\n",kthread_tid, trnmnt_tid);
+        if(trnmnt_tree_release(tree, kthread_id()) < 0)
+            printf(1,"bad acquire\n");
+        //printf(1,"thread:%d release\n",kthread_id());
+    }
+    kthread_exit();
+}
+
 void test_tree_tournament(){
     tree = trnmnt_tree_alloc(depth);
     int tid[num_threads];
     if(tree != 0){
 
         for(int i=0; i<num_threads;i++){
-            uint * stack = malloc(MAX_STACK_SIZE);
+            STACK_CREATE(stack)
+            memset(stack, 0, sizeof(*stack));
             tid[i] = kthread_create(tournament_cs, stack);
         }
 
@@ -562,38 +571,38 @@ void make_test(void (*f)(void) , int expected ,char * test_name){
 
 int main(void){
 
-//    // __________________KTHREAD___________________
-//    make_test(test_forking,20,"test_forking");
-//    make_test(sanity_kthread,1,"sanity_kthread");
-//    make_test(test_full_kthread,15,"sanity_kthread");
-//    make_test(create_extra_kthread,1,"create_extra_kthread");
-//    make_test(kthread_wrong_join,-1,"kthread_wrong_join");
-//    make_test(test_kthread_exit,1,"test_kthread_exit");
-//    make_test(test_kthread_join,60,"test_kthread_join");
-//    make_test(test_exit_process,numproc,"test_exit_process");
-//
-//
-    // __________________SIMPLE MUTEX___________________
-//    make_test(mutex_alloc,1,"mutex_alloc");
-//    make_test(mutex_dealloc,1,"mutex_dealloc");
-//    make_test(mutex_dealloc_twice,1,"mutex_dealloc_twice");
-//    make_test(mutex_dealloc_non_alocated,1,"mutex_dealloc_non_alocated");
-//    make_test(mutex_bad_dealloc,-1,"mutex_bad_dealloc");
-//    make_test(sanity_mutex_lock,1,"sanity_mutex_lock");
-//    make_test(sanity_mutex_unlock,1,"sanity_mutex_unlock");
-//    make_test(sanity_mutex_double_lock,-1,"sanity_mutex_double_lock");
-//    num_threads = 2; //two threads
-//    make_test(mutex_lock,num_threads,"mutex_lock two threads");
-//    num_threads = 7; // half full threads
-//    make_test(mutex_lock,num_threads,"mutex_lock half threads");
-//    num_threads = 15; // all threads
-//    make_test(mutex_lock,num_threads,"mutex_lock all threads");
+    // __________________KTHREAD___________________
+    make_test(test_forking,20,"test_forking");
+    make_test(sanity_kthread,1,"sanity_kthread");
+    make_test(test_full_kthread,15,"sanity_kthread");
+    make_test(create_extra_kthread,1,"create_extra_kthread");
+    make_test(kthread_wrong_join,-1,"kthread_wrong_join");
+    make_test(test_kthread_exit,1,"test_kthread_exit");
+    make_test(test_kthread_join,60,"test_kthread_join");
+    make_test(test_exit_process,numproc,"test_exit_process");
+
+
+   // __________________SIMPLE MUTEX___________________
+    make_test(mutex_alloc,1,"mutex_alloc");
+    make_test(mutex_dealloc,1,"mutex_dealloc");
+    make_test(mutex_dealloc_twice,1,"mutex_dealloc_twice");
+    make_test(mutex_dealloc_non_alocated,1,"mutex_dealloc_non_alocated");
+    make_test(mutex_bad_dealloc,-1,"mutex_bad_dealloc");
+    make_test(sanity_mutex_lock,1,"sanity_mutex_lock");
+    make_test(sanity_mutex_unlock,1,"sanity_mutex_unlock");
+    make_test(sanity_mutex_double_lock,-1,"sanity_mutex_double_lock");
+    num_threads = 2; //two threads
+    make_test(mutex_lock,num_threads,"mutex_lock two threads");
+    num_threads = 7; // half full threads
+    make_test(mutex_lock,num_threads,"mutex_lock half threads");
+    num_threads = 15; // all threads
+    make_test(mutex_lock,num_threads,"mutex_lock all threads");
 
 
     // __________________tournament_tree ______________________
 
-//    make_test(sanity_tree_alloc_dealloc,2,"sanity_tree_alloc_dealloc");
-       make_test(vs_tree_Test,9,"vs_tree_Test");
+        make_test(sanity_tree_alloc_dealloc,2,"sanity_tree_alloc_dealloc");
+        make_test(vs_tree_Test,9,"vs_tree_Test");
 
 
 //    for(loopnum = 1;loopnum < 10; loopnum++) {

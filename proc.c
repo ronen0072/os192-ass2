@@ -889,7 +889,7 @@ int kthread_create(void (*start_func)(), void* stack){
 
     *t->tf = *curthread->tf;
     t->tf->eip = (uint)start_func;
-    t->tf->esp = (uint)(stack/*+MAX_STACK_SIZE*/); // start point in stack
+    t->tf->esp = (uint)(stack + MAX_STACK_SIZE); // start point in stack
     t->tf->eax = 0;
     t->myproc = proc;
 
@@ -923,6 +923,7 @@ int kthread_mutex_alloc(){
         i++;
     }
     release(&mtable.lock);
+    //cprintf("all the mutex allocated\n");
     return -1;
 }
 
@@ -948,6 +949,7 @@ int kthread_mutex_dealloc(int mutex_id){
     acquire(&ptable.lock);
     // if lock is not allocated by proc
     if (curproc->mid[mutex_id]==0){
+        //cprintf("not of proc\n");
         release(&ptable.lock);
         return -1;
     }
@@ -973,7 +975,7 @@ int kthread_mutex_dealloc(int mutex_id){
 int kthread_mutex_lock(int mutex_id){
 // validate id
     if (mutex_id < 0 || mutex_id >= MAX_MUTEXES) {
-        cprintf("bad id");
+        //cprintf("bad id");
          return -1;
     }
 
@@ -985,7 +987,7 @@ int kthread_mutex_lock(int mutex_id){
     acquire(&mtable.lock);
     // if not allocated
     if(m->allocated == 0) {
-        cprintf("not allocated\n");
+        //cprintf("not allocated\n");
         release(&mtable.lock);
         return -1;
     }
@@ -993,7 +995,7 @@ int kthread_mutex_lock(int mutex_id){
 
     acquire(&ptable.lock);
     if (curproc->mid[mutex_id]==0){
-        cprintf("not of proc\n");
+        //cprintf("not of proc\n");
         release(&ptable.lock);
         return -1;
     }
@@ -1001,7 +1003,7 @@ int kthread_mutex_lock(int mutex_id){
 
     acquire(&mtable.lock);
     if (m->tid == curthread->tid) {
-        cprintf("allready locked\n");
+        //cprintf("allready locked\n");
         release(&mtable.lock);
         return -1;
     }
@@ -1036,23 +1038,28 @@ int kthread_mutex_unlock(int mutex_id){
     struct proc* curproc = myproc();
     struct thread* curthread = mythread();
 
+    acquire(&mtable.lock);
+    // if not allocated
+    if(m->allocated == 0) {
+        //cprintf("not allocated\n");
+        release(&mtable.lock);
+        return -1;
+    }
+    release(&mtable.lock);
 
     acquire(&ptable.lock);
 
     if (curproc->mid[mutex_id]==0){
+        //cprintf("not of proc\n");
         release(&ptable.lock);
         return -1;
     }
     release(&ptable.lock);
+
     acquire(&mtable.lock);
-
-
-    if(m->allocated == 0) {
-        release(&mtable.lock);
-        return -1;
-    }
     //make sure calling thread is holding thread
     if(curthread->tid !=m->tid ){
+       // cprintf("allready locked by other thread\n");
         release(&mtable.lock);
         return -1;
     }
@@ -1090,7 +1097,5 @@ int kthread_mutex_unlock(int mutex_id){
 //debug sys call
 
 int mutex_tid(int mid){
-
-
     return mtable.mutex[mid].tid;
 }

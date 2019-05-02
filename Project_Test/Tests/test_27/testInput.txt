@@ -1,4 +1,0 @@
-
-trntree6
-    
-quitXV6

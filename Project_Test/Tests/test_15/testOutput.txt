@@ -1,7 +1,0 @@
-$ Starting allocating a lot of mutexes in different process without deallocating
-Waiting for 0 process
-Waiting for 1 process
-Waiting for 2 process
-Waiting for 3 process
-Finished allocating a lot of mutexes in different process without deallocating
-$ $ Finished Yehonatan Peleg Test, quiting...

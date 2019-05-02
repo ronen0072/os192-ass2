@@ -1,4 +1,0 @@
-
-mutex6
-    
-quitXV6

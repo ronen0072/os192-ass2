@@ -1,1 +1,0 @@
-make --makefile=./Project_Test/Tests/test_14/Makefile clean qemu-gdb

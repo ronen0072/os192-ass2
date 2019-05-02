@@ -1,5 +1,5 @@
 #include "kthread_mutex.h"
-#define MAX_STACK_SIZE 500 //TODO:CHANGE BACK TO 4000
+#define MAX_STACK_SIZE 4000
 #define MAX_MUTEXES 64
 
 

@@ -1,1 +1,0 @@
-make --makefile=./Project_Test/Tests/test_6/Makefile clean qemu

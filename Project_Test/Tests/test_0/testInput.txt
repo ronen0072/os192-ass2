@@ -1,4 +1,0 @@
-
-OforktestO
-    
-quitXV6
