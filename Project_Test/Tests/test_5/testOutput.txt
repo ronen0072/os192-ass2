@@ -1,0 +1,24 @@
+$ Creating thread 1
+Finished creating thread 1
+Creating thread 2
+Finished creating thread 2
+Creating thread 3
+Finished creating thread 3
+Creating thread 4
+Finished creating thread 4
+Creating thread 5
+Finished creating thread 5
+Creating thread 6
+Finished creating thread 6
+Creating thread 7
+Finished creating thread 7
+Creating thread 8
+Finished creating thread 8
+Creating thread 9
+Finished creating thread 9
+Creating thread 10
+Finished creating thread 10
+Eexcuting exec sleep
+Sleep starting sleep !!!
+Sleep exiting !!!
+$ $ Finished Yehonatan Peleg Test, quiting...

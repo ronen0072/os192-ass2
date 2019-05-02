@@ -1,0 +1,62 @@
+$ Attempting to join thread 1
+Finished joing thread 1
+Attempting to join thread 2
+Finished joing thread 2
+Attempting to join thread 3
+Finished joing thread 3
+Attempting to join thread 4
+Finished joing thread 4
+Attempting to join thread 5
+Finished joing thread 5
+Attempting to join thread 6
+Finished joing thread 6
+Attempting to join thread 7
+Finished joing thread 7
+Attempting to join thread 8
+Finished joing thread 8
+Attempting to join thread 9
+Finished joing thread 9
+Attempting to join thread 10
+Finished joing thread 10
+Attempting to join thread 11
+Finished joing thread 11
+Attempting to join thread 12
+Finished joing thread 12
+Attempting to join thread 13
+Finished joing thread 13
+Attempting to join thread 14
+Finished joing thread 14
+Attempting to join thread 15
+Finished joing thread 15
+Attempting to join thread 1
+Finished joing thread 1
+Attempting to join thread 2
+Finished joing thread 2
+Attempting to join thread 3
+Finished joing thread 3
+Attempting to join thread 4
+Finished joing thread 4
+Attempting to join thread 5
+Finished joing thread 5
+Attempting to join thread 6
+Finished joing thread 6
+Attempting to join thread 7
+Finished joing thread 7
+Attempting to join thread 8
+Finished joing thread 8
+Attempting to join thread 9
+Finished joing thread 9
+Attempting to join thread 10
+Finished joing thread 10
+Attempting to join thread 11
+Finished joing thread 11
+Attempting to join thread 12
+Finished joing thread 12
+Attempting to join thread 13
+Finished joing thread 13
+Attempting to join thread 14
+Finished joing thread 14
+Attempting to join thread 15
+Finished joing thread 15
+Sum is 15000
+$ $ Finished Yehonatan Peleg Test, quiting...

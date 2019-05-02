@@ -1,0 +1,5 @@
+$ Attempting to join thread 1
+Finished joing thread 1
+Attempting to join thread 2
+Finished joing thread 2
+$ $ Finished Yehonatan Peleg Test, quiting...

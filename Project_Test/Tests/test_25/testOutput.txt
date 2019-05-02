@@ -1,0 +1,45 @@
+$ Starting tournament test 4
+
+---------------------------------------
+Started current test for 1 depth
+Attempting to join thread 1
+Finished joing thread 1
+Attempting to join thread 2
+Finished joing thread 2
+Finished current test for 1 depth
+---------------------------------------
+
+---------------------------------------
+Started current test for 2 depth
+Attempting to join thread 1
+Finished joing thread 1
+Attempting to join thread 2
+Finished joing thread 2
+Attempting to join thread 3
+Finished joing thread 3
+Attempting to join thread 4
+Finished joing thread 4
+Finished current test for 2 depth
+---------------------------------------
+
+---------------------------------------
+Started current test for 3 depth
+Attempting to join thread 1
+Finished joing thread 1
+Attempting to join thread 2
+Finished joing thread 2
+Attempting to join thread 3
+Finished joing thread 3
+Attempting to join thread 4
+Finished joing thread 4
+Attempting to join thread 5
+Finished joing thread 5
+Attempting to join thread 6
+Finished joing thread 6
+Attempting to join thread 7
+Finished joing thread 7
+Attempting to join thread 8
+Finished joing thread 8
+Finished current test for 3 depth
+---------------------------------------
+$ $ Finished Yehonatan Peleg Test, quiting...
