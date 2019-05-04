@@ -15,7 +15,7 @@ trnmnt_tree* trnmnt_tree_alloc(int depth) {
     if(depth < 1)
         return 0;
     struct trnmnt_tree * tree = malloc(sizeof( trnmnt_tree));
-    tree->size = ((2 << depth) - 1);
+    tree->size = ((2 << (depth-1)) - 1);
     tree->depth = depth;
     int i=0;
     tree->tree = malloc(tree->size * (sizeof(int)));

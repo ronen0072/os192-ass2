@@ -14,6 +14,9 @@ int testnum = 20;
 int success=0, fail=0,ans=-1, fibNum=10,mid=-1;
 int pids[20];
 volatile int dnum = -1;
+int depth = 1;
+trnmnt_tree * tree;
+int loopnum=1;
 
 int num_threads=1;
 
@@ -115,7 +118,7 @@ void test_kthread_exit(){
     pid = fork();
     if(pid == 0){
         for (int j = 0; j < 15; j++) {
-            STACK_CREATE(stack)
+            STACK_CREATE(stack);
             memset(stack, 0, sizeof(*stack));
             if(kthread_create(kthread_exiting, stack)<0){
                 printf(1,"bad create\n");
@@ -319,14 +322,24 @@ void sanity_mutex_double_lock(){
 
 }
 void cs(){
-    printf(1,"%d\n", kthread_id());
-    kthread_mutex_lock(mid);
-    fib(fibNum);
-    if(mutex_tid(mid) == kthread_id())
-        ans++;
-    kthread_mutex_unlock(mid);
-    printf(1,"%d\n", kthread_id());
-    kthread_exit();
+   // printf(1,"%d\n", kthread_id());
+    for(int i=0;i<loopnum;i++) {
+        if(kthread_mutex_lock(mid)<0){
+            printf(1,"bad mutex lock\n");
+            goto exit;
+        }
+        fib(fibNum);
+        if (mutex_tid(mid) == kthread_id())
+            ans++;
+        if(kthread_mutex_unlock(mid) == -1){
+            printf(1,"bad mutex lock\n");
+            goto exit;
+        }
+    }
+    exit:
+   // printf(1,"%d\n", kthread_id());
+   kthread_exit();
+
 
 }
 
@@ -334,19 +347,29 @@ void cs(){
 void mutex_lock(){
     int tid[num_threads];
     mid = kthread_mutex_alloc();
+    if(mid<0){
+        printf(1,"bad mutex aloc\n");
+        return;
+    }
     for (int i = 0; i <num_threads ; i++) {
         STACK_CREATE(stack)
         memset(stack, 0, sizeof(*stack));
         tid[i] = kthread_create(cs, stack);
+        if(tid[i]<0){
+            printf(1,"bad tcreate\n");
+        }
 
     }
     for (int i = 0; i <num_threads ; i++) {
-        kthread_join(tid[i]);
+        if(kthread_join(tid[i])<0){
+            printf(1,"bad tjoin\n");
+        }
     }
-    kthread_mutex_dealloc(mid);
+    if(kthread_mutex_dealloc(mid)<0){
+        printf(1,"bad mutex dealoc\n");
+    }
 }
 
-int depth = 1;
 
 // tournament_tree
 void sanity_tree_alloc_dealloc(){
@@ -359,10 +382,9 @@ void sanity_tree_alloc_dealloc(){
         else printf(1,"bad dealloc\n");
     }
     else printf(1,"bad alloc\n");
-}
-trnmnt_tree * tree;
 
-int loopnum=1;
+}
+
 void test_tournament_cs(){
 
     for(int i=0; i<loopnum;i++) {
@@ -400,7 +422,7 @@ void sanity_tree_tournament(){
             printf(1,"bad dealloc\n");
 
     }
-    else printf(1,"bad alloc\n");
+    else printf(1,"bad tree alloc\n");
 }
 
 void tournament_cs(){
@@ -591,44 +613,57 @@ int main(void){
     make_test(sanity_mutex_lock,1,"sanity_mutex_lock");
     make_test(sanity_mutex_unlock,1,"sanity_mutex_unlock");
     make_test(sanity_mutex_double_lock,-1,"sanity_mutex_double_lock");
-    num_threads = 2; //two threads
-    make_test(mutex_lock,num_threads,"mutex_lock two threads");
-    num_threads = 7; // half full threads
-    make_test(mutex_lock,num_threads,"mutex_lock half threads");
-    num_threads = 15; // all threads
-    make_test(mutex_lock,num_threads,"mutex_lock all threads");
+    for(int j = 0;j<5;j++) {
 
+//
+       for (loopnum = 1; loopnum < 10; loopnum++) {
+           printf(1, "Test complexity : %d \n", loopnum);
+           num_threads = 2; //two threads
+           printf(1, "thread num: %d \n", num_threads);
+           make_test(mutex_lock, num_threads*loopnum, "mutex_lock two threads");
+           num_threads = 7; // half full threads
+           printf(1, "thread num: %d \n", num_threads);
+           make_test(mutex_lock, num_threads*loopnum, "mutex_lock half threads");
+           num_threads = 15; // all threads
+           printf(1, "thread num: %d \n", num_threads);
+           make_test(mutex_lock, num_threads*loopnum, "mutex_lock all threads");
+       }
+    }
 
-    // __________________tournament_tree ______________________
+//    // __________________tournament_tree ______________________
 
         make_test(sanity_tree_alloc_dealloc,2,"sanity_tree_alloc_dealloc");
         make_test(vs_tree_Test,9,"vs_tree_Test");
 
-
-//    for(loopnum = 1;loopnum < 10; loopnum++) {
-//        num_threads = 2;
-//        depth = 1;
-//        printf(1,"Test complexity : %d \n", loopnum);
-//        make_test(sanity_tree_tournament, num_threads * 2 *loopnum, "sanity_tree_tournament");
-//        num_threads = 7;
-//        depth = 3;
-//        make_test(sanity_tree_tournament, num_threads * 2 *loopnum, "sanity_tree_tournament");
-//        num_threads = 15;
-//        depth = 4;
-//        make_test(sanity_tree_tournament, num_threads * 2 *loopnum, "sanity_tree_tournament");
-//    }
-//    for(loopnum = 1;loopnum < 10; loopnum++) {
-//        num_threads = 2;
-//        depth = 1;
-//        printf(1,"Test complexity : %d \n", loopnum);
-//        make_test(test_tree_tournament, num_threads *loopnum, "test_tree_tournament");
-//        num_threads = 7;
-//        depth = 3;
-//        make_test(test_tree_tournament, num_threads *loopnum, "test_tree_tournament");
-//        num_threads = 15;
-//        depth = 4;
-//        make_test(test_tree_tournament, num_threads *loopnum, "test_tree_tournament");
-//    }
+    for(int j = 0;j<5;j++) {
+        for (loopnum = 1; loopnum < 10; loopnum++) {
+            num_threads = 2;
+            depth = 2;
+            printf(1, "Test complexity : %d \n", loopnum);
+            printf(1, "thread num: %d \n", num_threads);
+            make_test(sanity_tree_tournament, num_threads * 2 * loopnum, "sanity_tree_tournament");
+            num_threads = 7;
+            depth = 3;
+            printf(1, "thread num: %d \n", num_threads);
+            make_test(sanity_tree_tournament, num_threads * 2 * loopnum, "sanity_tree_tournament");
+            num_threads = 15;
+            depth = 4;
+            printf(1, "thread num: %d \n", num_threads);
+            make_test(sanity_tree_tournament, num_threads * 2 * loopnum, "sanity_tree_tournament");
+        }
+    }
+    for(loopnum = 1;loopnum < 10; loopnum++) {
+        num_threads = 2;
+        depth = 2;
+        printf(1,"Test complexity : %d \n", loopnum);
+        make_test(test_tree_tournament, num_threads *loopnum, "test_tree_tournament");
+        num_threads = 7;
+        depth = 3;
+        make_test(test_tree_tournament, num_threads *loopnum, "test_tree_tournament");
+        num_threads = 15;
+        depth = 4;
+        make_test(test_tree_tournament, num_threads *loopnum, "test_tree_tournament");
+    }
     // ___________________SUMMERY_______________________________
     printf(1,"num of success:%d num of failures: %d\n",success,fail );
 
