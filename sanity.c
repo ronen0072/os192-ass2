@@ -95,7 +95,7 @@ void create_extra_kthread(){
         memset(stack, 0, sizeof(*stack));
         if ((tids[i] = (kthread_create(printfibexit, stack))) < 0) {
             ans++;
-            printf(2, "thread_create error\n");
+            //printf(2, "thread_create error\n");
         }
     }
     for(int i=0;i<15;i++){

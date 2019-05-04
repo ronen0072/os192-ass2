@@ -14,3 +14,5 @@ initcode
 kernel
 .idea*
 .idea/*
+Project_Test
+*.patch

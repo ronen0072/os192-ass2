@@ -170,6 +170,7 @@ allocproc(void)
     return 0;
 
     found:
+    release(&ptable.lock);
     p->state = EMBRYO;
     for(int index  = 0; index < MAX_MUTEXES; index++){
         p->mid[index] = 0;
@@ -177,7 +178,7 @@ allocproc(void)
     p->ttlock  = &ptable.lock;
     //initlock(&p->ttlock,"threads_lock");
     p->pid = nextpid++;
-    release(&ptable.lock);
+
     //allocate first thread
     if(allocthread(p, KSTACKSIZE) == 0){
         p->state =UNUSED;
@@ -795,7 +796,10 @@ void kthread_exit(){
 
 }
 int kthread_id(){
-    return mythread()->tid;
+    acquire(myproc()->ttlock);
+    int id =  mythread()->tid;
+    release(myproc()->ttlock);
+    return id;
 }
 //must be called under lock;
 void clear_thread(struct thread* t){
@@ -888,10 +892,11 @@ int kthread_mutex_alloc(){
             m->name = curproc->name;
             m->locked = 0;
             m->tid = -1;
-            release(&mtable.lock);
+
             acquire(&ptable.lock);
             curproc->mid[i] = 1;
             release(&ptable.lock);
+            release(&mtable.lock);
             return i;
         }
         i++;
