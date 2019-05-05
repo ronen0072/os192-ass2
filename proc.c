@@ -438,7 +438,7 @@ wait(void){
                 for(t=p->threads; t<&p->threads[NTHREAD]; t++){
                     if(t->state != UNUSED){
                         clear_thread(t);
-                        continue;
+
                     }
                 }
                 pid = p->pid;
@@ -825,10 +825,9 @@ int kthread_join(int thread_id){
 
     acquire(curproc->ttlock);
     struct thread *t = &curproc->threads[thread_id];
-    if(t->state == UNUSED || t->state == EMBRYO){
+    if(t->tid != thread_id){
         release(curproc->ttlock);
         return -1;
-
     }
 
    // cprintf("wj%d\n", t->tid);
@@ -892,7 +891,6 @@ int kthread_mutex_alloc(){
             m->name = curproc->name;
             m->locked = 0;
             m->tid = -1;
-
             acquire(&ptable.lock);
             curproc->mid[i] = 1;
             release(&ptable.lock);

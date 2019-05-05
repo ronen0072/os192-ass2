@@ -322,7 +322,7 @@ void sanity_mutex_double_lock(){
 
 }
 void cs(){
-   // printf(1,"%d\n", kthread_id());
+    // printf(1,"%d\n", kthread_id());
     for(int i=0;i<loopnum;i++) {
         if(kthread_mutex_lock(mid)<0){
             printf(1,"bad mutex lock\n");
@@ -337,8 +337,8 @@ void cs(){
         }
     }
     exit:
-   // printf(1,"%d\n", kthread_id());
-   kthread_exit();
+    // printf(1,"%d\n", kthread_id());
+    kthread_exit();
 
 
 }
@@ -546,8 +546,8 @@ void vs_tree_Test(void){
 
     sleep(100);
 
-        pids[0] = kthread_create(threadStart_1, threads_stacks[0]);
-        pids[1] = kthread_create(threadStart_2, threads_stacks[1]);
+    pids[0] = kthread_create(threadStart_1, threads_stacks[0]);
+    pids[1] = kthread_create(threadStart_2, threads_stacks[1]);
 
 
     dontStart = 0;
@@ -593,81 +593,82 @@ void make_test(void (*f)(void) , int expected ,char * test_name){
 
 int main(void){
 
-    // __________________KTHREAD___________________
-    make_test(test_forking,20,"test_forking");
-    make_test(sanity_kthread,1,"sanity_kthread");
-    make_test(test_full_kthread,15,"sanity_kthread");
-    make_test(create_extra_kthread,1,"create_extra_kthread");
-    make_test(kthread_wrong_join,-1,"kthread_wrong_join");
-    make_test(test_kthread_exit,1,"test_kthread_exit");
-    make_test(test_kthread_join,60,"test_kthread_join");
-    make_test(test_exit_process,numproc,"test_exit_process");
+        // __________________KTHREAD___________________
+        make_test(test_forking, 20, "test_forking");
+        make_test(sanity_kthread, 1, "sanity_kthread");
+        make_test(test_full_kthread, 15, "sanity_kthread");
+        make_test(create_extra_kthread, 1, "create_extra_kthread");
+        make_test(kthread_wrong_join, -1, "kthread_wrong_join");
+        make_test(test_kthread_exit, 1, "test_kthread_exit");
+        make_test(test_kthread_join, 60, "test_kthread_join");
+        make_test(test_exit_process, numproc, "test_exit_process");
 
 
-   // __________________SIMPLE MUTEX___________________
-    make_test(mutex_alloc,1,"mutex_alloc");
-    make_test(mutex_dealloc,1,"mutex_dealloc");
-    make_test(mutex_dealloc_twice,1,"mutex_dealloc_twice");
-    make_test(mutex_dealloc_non_alocated,1,"mutex_dealloc_non_alocated");
-    make_test(mutex_bad_dealloc,-1,"mutex_bad_dealloc");
-    make_test(sanity_mutex_lock,1,"sanity_mutex_lock");
-    make_test(sanity_mutex_unlock,1,"sanity_mutex_unlock");
-    make_test(sanity_mutex_double_lock,-1,"sanity_mutex_double_lock");
-    for(int j = 0;j<5;j++) {
+        // __________________SIMPLE MUTEX___________________
+        make_test(mutex_alloc, 1, "mutex_alloc");
+        make_test(mutex_dealloc, 1, "mutex_dealloc");
+        make_test(mutex_dealloc_twice, 1, "mutex_dealloc_twice");
+        make_test(mutex_dealloc_non_alocated, 1, "mutex_dealloc_non_alocated");
+        make_test(mutex_bad_dealloc, -1, "mutex_bad_dealloc");
+        make_test(sanity_mutex_lock, 1, "sanity_mutex_lock");
+        make_test(sanity_mutex_unlock, 1, "sanity_mutex_unlock");
+        make_test(sanity_mutex_double_lock, -1, "sanity_mutex_double_lock");
+        for (int j = 0; j < 2; j++) {
 
 //
-       for (loopnum = 1; loopnum < 10; loopnum++) {
-           printf(1, "Test complexity : %d \n", loopnum);
-           num_threads = 2; //two threads
-           printf(1, "thread num: %d \n", num_threads);
-           make_test(mutex_lock, num_threads*loopnum, "mutex_lock two threads");
-           num_threads = 7; // half full threads
-           printf(1, "thread num: %d \n", num_threads);
-           make_test(mutex_lock, num_threads*loopnum, "mutex_lock half threads");
-           num_threads = 15; // all threads
-           printf(1, "thread num: %d \n", num_threads);
-           make_test(mutex_lock, num_threads*loopnum, "mutex_lock all threads");
-       }
-    }
+            for (loopnum = 1; loopnum < 10; loopnum++) {
+                printf(1, "Test complexity : %d \n", loopnum);
+                num_threads = 2; //two threads
+                printf(1, "thread num: %d \n", num_threads);
+                make_test(mutex_lock, num_threads * loopnum, "mutex_lock two threads");
+                num_threads = 7; // half full threads
+                printf(1, "thread num: %d \n", num_threads);
+                make_test(mutex_lock, num_threads * loopnum, "mutex_lock half threads");
+                num_threads = 15; // all threads
+                printf(1, "thread num: %d \n", num_threads);
+                make_test(mutex_lock, num_threads * loopnum, "mutex_lock all threads");
+            }
+        }
+//
+////    // __________________tournament_tree ______________________
 
-//    // __________________tournament_tree ______________________
+        make_test(sanity_tree_alloc_dealloc, 2, "sanity_tree_alloc_dealloc");
+        make_test(vs_tree_Test, 9, "vs_tree_Test");
 
-        make_test(sanity_tree_alloc_dealloc,2,"sanity_tree_alloc_dealloc");
-        make_test(vs_tree_Test,9,"vs_tree_Test");
-
-    for(int j = 0;j<5;j++) {
-        for (loopnum = 1; loopnum < 10; loopnum++) {
+        for (int j = 0; j < 2; j++) {
+            for (loopnum = 1; loopnum < 5; loopnum++) {
+                num_threads = 2;
+                depth = 2;
+                printf(1, "Test complexity : %d \n", loopnum);
+                printf(1, "thread num: %d \n", num_threads);
+                make_test(sanity_tree_tournament, num_threads * 2 * loopnum, "sanity_tree_tournament");
+                num_threads = 7;
+                depth = 3;
+                printf(1, "thread num: %d \n", num_threads);
+                make_test(sanity_tree_tournament, num_threads * 2 * loopnum, "sanity_tree_tournament");
+                num_threads = 15;
+                depth = 4;
+                printf(1, "thread num: %d \n", num_threads);
+                make_test(sanity_tree_tournament, num_threads * 2 * loopnum, "sanity_tree_tournament");
+            }
+        }
+        for (loopnum = 1; loopnum < 2; loopnum++) {
             num_threads = 2;
             depth = 2;
             printf(1, "Test complexity : %d \n", loopnum);
-            printf(1, "thread num: %d \n", num_threads);
-            make_test(sanity_tree_tournament, num_threads * 2 * loopnum, "sanity_tree_tournament");
+            make_test(test_tree_tournament, num_threads * loopnum, "test_tree_tournament");
             num_threads = 7;
             depth = 3;
-            printf(1, "thread num: %d \n", num_threads);
-            make_test(sanity_tree_tournament, num_threads * 2 * loopnum, "sanity_tree_tournament");
+            make_test(test_tree_tournament, num_threads * loopnum, "test_tree_tournament");
             num_threads = 15;
             depth = 4;
-            printf(1, "thread num: %d \n", num_threads);
-            make_test(sanity_tree_tournament, num_threads * 2 * loopnum, "sanity_tree_tournament");
+            make_test(test_tree_tournament, num_threads * loopnum, "test_tree_tournament");
         }
-    }
-    for(loopnum = 1;loopnum < 10; loopnum++) {
-        num_threads = 2;
-        depth = 2;
-        printf(1,"Test complexity : %d \n", loopnum);
-        make_test(test_tree_tournament, num_threads *loopnum, "test_tree_tournament");
-        num_threads = 7;
-        depth = 3;
-        make_test(test_tree_tournament, num_threads *loopnum, "test_tree_tournament");
-        num_threads = 15;
-        depth = 4;
-        make_test(test_tree_tournament, num_threads *loopnum, "test_tree_tournament");
-    }
-    // ___________________SUMMERY_______________________________
-    printf(1,"num of success:%d num of failures: %d\n",success,fail );
 
-    if(fail == 0)
-        printf(1,"All tests passed!! Yay!\n");
-    exit();
-}
+        // ___________________SUMMERY_______________________________
+        printf(1, "num of success:%d num of failures: %d\n", success, fail);
+
+        if (fail == 0)
+            printf(1, "All tests passed!! Yay!\n");
+        exit();
+    }
