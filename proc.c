@@ -910,11 +910,11 @@ int kthread_mutex_dealloc(int mutex_id){
     //cprintf("m%d starting Deallocation\n", mutex_id);
     if (mutex_id < 0 || mutex_id >= MAX_MUTEXES)
         return -1;
-    acquire(&mtable.lock);
-    struct kthread_mutex* m = &mtable.mutex[mutex_id];
+
     struct proc* curproc = myproc();
 
-
+    acquire(&mtable.lock);
+    struct kthread_mutex* m = &mtable.mutex[mutex_id];
     // if not allocated
     if(m->allocated == 0) {
         //cprintf("not allocated\n");
@@ -960,12 +960,12 @@ int kthread_mutex_lock(int mutex_id){
         //cprintf("bad id");
         return -1;
     }
-    acquire(&mtable.lock);
-    struct kthread_mutex* m = &mtable.mutex[mutex_id];
+
     struct proc* curproc = myproc();
     struct thread* curthread = mythread();
 
-
+    acquire(&mtable.lock);
+    struct kthread_mutex* m = &mtable.mutex[mutex_id];
 
     // if not allocated
     if(m->allocated == 0) {
@@ -1018,11 +1018,11 @@ int kthread_mutex_unlock(int mutex_id){
 //valiate id
     if (mutex_id < 0 || mutex_id >= MAX_MUTEXES)
         return -1;
-    acquire(&mtable.lock);
-    struct kthread_mutex* m = &mtable.mutex[mutex_id];
+
     struct proc* curproc = myproc();
     struct thread* curthread = mythread();
-
+    acquire(&mtable.lock);
+    struct kthread_mutex* m = &mtable.mutex[mutex_id];
 
     // if not allocated
     if(m->allocated == 0) {
